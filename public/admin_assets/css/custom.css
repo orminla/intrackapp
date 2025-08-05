@@ -1,0 +1,7 @@
+.text-orange {
+    color: var(--bs-orange) !important;
+}
+.bg-orange-subtle {
+    background-color: rgba(251, 140, 0, 0.1) !important;
+    color: var(--bs-orange) !important;
+}
