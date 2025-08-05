@@ -1,3 +1,11 @@
+@push("styles")
+    <style>
+        tr[onclick]:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+@endpush
+
 @extends("admin.layouts.app")
 
 @section("title", "Dashboard")
@@ -10,50 +18,58 @@
                     "key" => "inspeksi_selesai",
                     "title" => "Inspeksi Selesai",
                     "icon" => "ti-circle-check",
-                    "color" => "primary"
+                    "color" => "primary",
+                    "url" => route("admin.riwayat")
                 ],
                 [
                     "key" => "inspeksi_hari_ini",
                     "title" => "Inspeksi Hari Ini",
                     "icon" => "ti-calendar-event",
-                    "color" => "success"
+                    "color" => "success",
+                    "url" => route("admin.jadwal.index")
                 ],
                 [
-                    "key" => "jadwal_perlu_validasi",
-                    "title" => "Validasi Jadwal",
-                    "icon" => "ti-list-check",
-                    "color" => "warning"
+                    "key" => "inspeksi_mendatang",
+                    "title" => "Akan Datang",
+                    "icon" => "ti-calendar-stats",
+                    "color" => "warning",
+                    "url" => route("admin.dashboard") . "#upcoming"
                 ],
                 [
                     "key" => "laporan_perlu_validasi",
                     "title" => "Validasi Laporan",
                     "icon" => "ti-file-check",
-                    "color" => "danger"
+                    "color" => "danger",
+                    "url" => route("admin.laporan")
                 ]
             ]
             as $card)
             <div class="col-md-3 col-sm-6 mb-1">
-                <div class="card h-100 rounded-4">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                        <span
-                            class="d-inline-flex align-items-center justify-content-center rounded-circle bg-{{ $card["color"] }}-subtle text-{{ $card["color"] }} ms-4"
-                            style="width: 40px; height: 40px"
+                <a href="{{ $card["url"] }}" class="text-decoration-none">
+                    <div class="card h-100 rounded-4">
+                        <div
+                            class="card-body d-flex align-items-center gap-3 p-3"
                         >
-                            <i
-                                class="ti {{ $card["icon"] }}"
-                                style="font-size: 18px"
-                            ></i>
-                        </span>
-                        <div style="max-width: 100px">
-                            <h5 class="mb-0 fw-semibold">
-                                {{ $summary[$card["key"]] ?? 0 }}
-                            </h5>
-                            <small class="text-muted">
-                                {{ $card["title"] }}
-                            </small>
+                            <span
+                                class="d-inline-flex align-items-center justify-content-center rounded-circle bg-{{ $card["color"] }}-subtle text-{{ $card["color"] }} ms-4"
+                                style="width: 40px; height: 40px"
+                            >
+                                <i
+                                    class="ti {{ $card["icon"] }}"
+                                    style="font-size: 18px"
+                                ></i>
+                            </span>
+                            <div style="max-width: 100px">
+                                <h5 class="mb-0 fw-semibold">
+                                    {{ $summary[$card["key"]] ?? 0 }}
+                                </h5>
+                                <small class="text-muted">
+                                    {{ $card["title"] }}
+                                </small>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         @endforeach
     </div>
@@ -133,7 +149,7 @@
     </div>
 
     {{-- Tabel Jadwal --}}
-    <div class="row d-flex align-items-stretch">
+    <div class="row d-flex align-items-stretch" id="upcoming">
         <div class="col-12 d-flex">
             <div class="card w-100 h-100 rounded-4">
                 <div class="card-body">
@@ -189,16 +205,14 @@
                                     >
                                         Status
                                     </th>
-                                    <th
-                                        class="px-0 text-dark text-center fw-bold"
-                                    >
-                                        Aksi
-                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($upcoming as $i => $item)
-                                    <tr>
+                                    <tr
+                                        style="cursor: pointer"
+                                        onclick="window.location='{{ route("admin.jadwal.index") }}'"
+                                    >
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
@@ -238,7 +252,6 @@
                                                     "Selesai" => ["label" => "Selesai", "warna" => "success"],
                                                     "Menunggu konfirmasi" => ["label" => "Menunggu", "warna" => "info"],
                                                     "Dalam proses" => ["label" => "Diproses", "warna" => "warning"],
-                                                    "Ditolak" => ["label" => "Ditolak", "warna" => "danger"],
                                                     "Dijadwalkan ganti" => ["label" => "Ganti", "warna" => "secondary"],
                                                 ];
                                                 $statusBadge = $badgeMap[$status] ?? ["label" => $status, "warna" => "dark"];
@@ -249,28 +262,6 @@
                                             >
                                                 {{ $statusBadge["label"] }}
                                             </span>
-                                        </td>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
-                                            <button
-                                                class="btn btn-sm px-1 border-0 bg-transparent"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-title="Lihat"
-                                            >
-                                                <i
-                                                    class="ti ti-eye fs-5 text-primary"
-                                                ></i>
-                                            </button>
-                                            <button
-                                                class="btn btn-sm px-1 border-0 bg-transparent"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-title="Validasi"
-                                            >
-                                                <i
-                                                    class="ti ti-circle-check fs-5 text-success"
-                                                ></i>
-                                            </button>
                                         </td>
                                     </tr>
                                 @endforeach

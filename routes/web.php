@@ -53,6 +53,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('can:isAdmin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/chart/inspection', [AdminDashboardController::class, 'inspectionChart']);
+        Route::get('/chart/distribution', [AdminDashboardController::class, 'distributionChart']);
 
         Route::get('/get-inspector', [ScheduleController::class, 'getAutoInspector'])->name('get-inspector');
         Route::post('/change-request/update', [ScheduleController::class, 'updateChangeInspector'])->name('change_request.update');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\Schedule;
 use App\Models\Report;
 use Carbon\Carbon;
@@ -32,7 +33,7 @@ class DashboardController extends Controller
         $summary = [
             'inspeksi_selesai' => Schedule::where('status', 'Selesai')->count(),
             'inspeksi_hari_ini' => Schedule::whereDate('started_date', $today)->count(),
-            'jadwal_perlu_validasi' => Schedule::where('status', 'Menunggu konfirmasi')->count(),
+            'inspeksi_mendatang' => $this->upcomingSchedules(null, true)->count(), // ← Tambahkan ini
             'laporan_perlu_validasi' => Report::where('status', 'Menunggu validasi')->count(),
         ];
 
@@ -59,9 +60,9 @@ class DashboardController extends Controller
 
     public function upcomingSchedules(Request $request = null, $returnOnly = false)
     {
-        // Ambil hari Senin sampai Jumat minggu ini
+        // Ambil hari Senin sampai Minggu minggu ini
         $monday = now()->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay();
-        $friday = now()->startOfWeek(\Carbon\Carbon::MONDAY)->addDays(4)->endOfDay();
+        $sunday = now()->startOfWeek(\Carbon\Carbon::MONDAY)->addDays(6)->endOfDay(); // Ganti dari 4 ke 6
 
         $schedules = Schedule::with([
             'product' => function ($q) {
@@ -74,7 +75,7 @@ class DashboardController extends Controller
             }
         ])
             ->where('status', 'Menunggu konfirmasi')
-            ->whereBetween('started_date', [$monday, $friday])
+            ->whereBetween('started_date', [$monday, $sunday]) // Ganti dari $friday ke $sunday
             ->get();
 
         $formattedSchedules = $schedules->map(function ($schedule) {
@@ -107,5 +108,71 @@ class DashboardController extends Controller
 
         // Jika untuk view biasa
         return view('admin.dashboard', ['upcoming' => $formattedSchedules]);
+    }
+
+    public function inspectionChart()
+    {
+        $bitu = DB::table('schedules')
+            ->join('inspectors', 'schedules.inspector_id', '=', 'inspectors.inspector_id')
+            ->select(DB::raw('DATE(schedules.started_date) as tanggal'), DB::raw('count(*) as jumlah'))
+            ->where('inspectors.portfolio_id', 1) // BITU
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
+
+        $bip = DB::table('schedules')
+            ->join('inspectors', 'schedules.inspector_id', '=', 'inspectors.inspector_id')
+            ->select(DB::raw('DATE(schedules.started_date) as tanggal'), DB::raw('count(*) as jumlah'))
+            ->where('inspectors.portfolio_id', 2) // BIP
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
+
+        $labels = $bitu->pluck('tanggal')->merge($bip->pluck('tanggal'))->unique()->values();
+        if ($labels->isEmpty()) {
+            $labels = collect([now()->format('Y-m-d')]);
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'bitu' => $labels->map(fn($tgl) => $bitu->firstWhere('tanggal', $tgl)->jumlah ?? 0),
+            'bip' => $labels->map(fn($tgl) => $bip->firstWhere('tanggal', $tgl)->jumlah ?? 0),
+        ]);
+    }
+
+    public function distributionChart()
+    {
+        $twoWeeksAgo = Carbon::now()->subDays(14);
+
+        // Ambil semua petugas
+        $inspectors = DB::table('inspectors')->get();
+
+        // Hitung jumlah jadwal tiap petugas dalam 14 hari terakhir
+        $scheduleCounts = DB::table('schedules')
+            ->where('started_date', '>=', $twoWeeksAgo)
+            ->select('inspector_id', DB::raw('count(*) as jumlah'))
+            ->groupBy('inspector_id')
+            ->pluck('jumlah', 'inspector_id'); // [inspector_id => jumlah]
+
+        $sesuai = 0;
+        $berlebih = 0;
+        $belum = 0;
+
+        foreach ($inspectors as $inspector) {
+            $count = $scheduleCounts[$inspector->inspector_id] ?? 0;
+
+            if ($count === 0) {
+                $belum++;
+            } elseif ($count === 1) {
+                $sesuai++;
+            } else {
+                $berlebih++;
+            }
+        }
+
+        return response()->json([
+            'labels' => ['Sesuai', 'Berlebih', 'Belum Terverifikasi'],
+            'series' => [$sesuai, $berlebih, $belum],
+        ]);
     }
 }
