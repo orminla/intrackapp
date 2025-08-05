@@ -196,7 +196,7 @@ class InspectorController extends Controller
 
         // Kirim link verifikasi (via EmailVerificationController)
         $verif = new \App\Http\Controllers\Auth\EmailVerificationController();
-        $verifLink = url('/verifikasi?token=' . $token);
+        $verifLink = url('/verify-email?token=' . $token);
         $verif->sendVerificationLink($pending);
 
         // Jika request API

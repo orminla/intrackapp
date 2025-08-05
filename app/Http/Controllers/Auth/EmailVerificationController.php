@@ -14,10 +14,8 @@ use Illuminate\Support\Facades\Http;
 
 class EmailVerificationController extends Controller
 {
-    public function verify(Request $request)
+    public function verify($token)
     {
-        $token = $request->query('token');
-
         $pending = PendingUser::where('verif_token', $token)->first();
 
         if (!$pending) {
@@ -38,7 +36,7 @@ class EmailVerificationController extends Controller
         // Buat akun admin atau inspector
         if ($pending->role === 'admin') {
             Admin::create([
-                'user_id' => $user->id,
+                'users_id' => $user->id,
                 'name' => $pending->name,
                 'nip' => $pending->nip,
                 'phone_num' => $pending->phone_num,
@@ -47,7 +45,7 @@ class EmailVerificationController extends Controller
             ]);
         } elseif ($pending->role === 'inspector') {
             Inspector::create([
-                'user_id' => $user->id,
+                'users_id' => $user->id,
                 'name' => $pending->name,
                 'nip' => $pending->nip,
                 'phone_num' => $pending->phone_num,
@@ -57,8 +55,8 @@ class EmailVerificationController extends Controller
         }
 
         // Kirim WA info login
-        $msg = "Selamat! Akun Anda telah aktif 🎉\n\nEmail: {$user->email}\nPassword: {$pending->password_plain}\n\nSilakan login ke sistem.\n\nTerima kasih 🙏";
-        $this->sendWhatsappMessage($pending->phone_num, $msg);
+        // $msg = "Selamat! Akun Anda telah aktif 🎉\n\nEmail: {$user->email}\nPassword: {$pending->password_plain}\n\nSilakan login ke sistem.\n\nTerima kasih 🙏";
+        // $this->sendWhatsappMessage($pending->phone_num, $msg);
 
         // Hapus pending
         $pending->delete();
@@ -68,14 +66,14 @@ class EmailVerificationController extends Controller
 
     public function sendVerificationLink(PendingUser $pending)
     {
-        $link = url('/verifikasi?token=' . $pending->verif_token);
+        $link = url('/verify-email/' . $pending->verif_token);
 
-        $message = "Halo {$pending->name},\n\n" .
-            "Akun Anda telah didaftarkan.\n\n" .
+        $message = "Halo {$pending->name},\n" .
+            "Akun InTrack Anda telah didaftarkan.\n\n" .
             "Email: {$pending->email}\n" .
             "Password: {$pending->password_plain}\n\n" .
             "Silakan verifikasi akun Anda melalui link berikut:\n$link\n\n" .
-            "Terima kasih 🙏";
+            "Terima kasih 😊🙏";
 
         $this->sendWhatsappMessage($pending->phone_num, $message);
     }

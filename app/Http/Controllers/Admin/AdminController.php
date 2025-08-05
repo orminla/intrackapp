@@ -176,7 +176,7 @@ class AdminController extends Controller
 
         // Kirim WA (gunakan controller Auth)
         $verif = new EmailVerificationController();
-        $verifLink = url('/verifikasi?token=' . $token);
+        $verifLink = url('/verify-email?token=' . $token);
         $verif->sendVerificationLink($pending);
 
         // Jika request API
