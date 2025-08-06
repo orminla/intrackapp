@@ -275,8 +275,9 @@
 @endsection
 
 @push("scripts")
-    <script src="{{ asset("admin_assets/libs/apexcharts/dist/apexcharts.min.js") }}"></script>
-    <script src="{{ asset("admin_assets/js/line_chart.js") }}"></script>
-    <script src="{{ asset("admin_assets/js/doughnut_chart.js") }}"></script>
+    {{-- <script src="{{ asset("admin_assets/libs/apexcharts/dist/apexcharts.min.js") }}"></script> --}}
+    <script src="{{ asset("admin_assets/js/linechart.js") }}"></script>
+    <script src="{{ asset("admin_assets/js/doughnutchart.js") }}"></script>
     <script src="{{ asset("admin_assets/js/dashboard.js") }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 @endpush
