@@ -7,8 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Schedule;
+use App\Models\Department;
 use App\Models\Report;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
@@ -34,7 +36,7 @@ class DashboardController extends Controller
             'inspeksi_selesai' => Schedule::where('status', 'Selesai')->count(),
             'inspeksi_hari_ini' => Schedule::whereDate('started_date', $today)->count(),
             'inspeksi_mendatang' => $this->upcomingSchedules(null, true)->count(), // ← Tambahkan ini
-            'laporan_perlu_validasi' => Report::where('status', 'Menunggu validasi')->count(),
+            'laporan_perlu_validasi' => Report::where('status', 'Menunggu konfirmasi')->count(),
         ];
 
         // Ambil 7 hari ke depan
@@ -112,31 +114,38 @@ class DashboardController extends Controller
 
     public function inspectionChart()
     {
-        $bitu = DB::table('schedules')
-            ->join('inspectors', 'schedules.inspector_id', '=', 'inspectors.inspector_id')
-            ->select(DB::raw('DATE(schedules.started_date) as tanggal'), DB::raw('count(*) as jumlah'))
-            ->where('inspectors.portfolio_id', 1) // BITU
-            ->groupBy('tanggal')
-            ->orderBy('tanggal')
-            ->get();
+        $year = now()->year;
 
-        $bip = DB::table('schedules')
-            ->join('inspectors', 'schedules.inspector_id', '=', 'inspectors.inspector_id')
-            ->select(DB::raw('DATE(schedules.started_date) as tanggal'), DB::raw('count(*) as jumlah'))
-            ->where('inspectors.portfolio_id', 2) // BIP
-            ->groupBy('tanggal')
-            ->orderBy('tanggal')
-            ->get();
-
-        $labels = $bitu->pluck('tanggal')->merge($bip->pluck('tanggal'))->unique()->values();
-        if ($labels->isEmpty()) {
-            $labels = collect([now()->format('Y-m-d')]);
+        $labels = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $labels[] = \Carbon\Carbon::createFromDate(null, $i, 1)->format('M');
         }
 
+        $bituId = DB::table('departments')->where('name', 'Inspeksi Teknik dan Umum')->value('department_id');
+        $bipId  = DB::table('departments')->where('name', 'Inspeksi dan Pengujian')->value('department_id');
+
+        $getMonthlyData = function ($departmentId) use ($year) {
+            return DB::table('schedules')
+                ->join('inspectors', 'schedules.inspector_id', '=', 'inspectors.inspector_id')
+                ->join('portfolios', 'inspectors.portfolio_id', '=', 'portfolios.portfolio_id')
+                ->join('departments', 'portfolios.department_id', '=', 'departments.department_id')
+                ->select(
+                    DB::raw('MONTH(schedules.started_date) as month'),
+                    DB::raw('COUNT(*) as jumlah')
+                )
+                ->whereYear('schedules.started_date', $year)
+                ->where('departments.department_id', $departmentId)
+                ->groupBy('month')
+                ->pluck('jumlah', 'month');
+        };
+
+        $bituRaw = $getMonthlyData($bituId);
+        $bipRaw  = $getMonthlyData($bipId);
+
         return response()->json([
-            'labels' => $labels,
-            'bitu' => $labels->map(fn($tgl) => $bitu->firstWhere('tanggal', $tgl)->jumlah ?? 0),
-            'bip' => $labels->map(fn($tgl) => $bip->firstWhere('tanggal', $tgl)->jumlah ?? 0),
+            'labels' => $labels, // sudah array biasa
+            'bitu'   => collect(range(1, 12))->map(fn($m) => $bituRaw[$m] ?? 0)->values(),
+            'bip'    => collect(range(1, 12))->map(fn($m) => $bipRaw[$m] ?? 0)->values(),
         ]);
     }
 

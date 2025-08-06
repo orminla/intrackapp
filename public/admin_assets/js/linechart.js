@@ -2,6 +2,9 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch("/admin/chart/inspection")
         .then((res) => res.json())
         .then((data) => {
+            const maxValue = Math.max(...data.bitu.concat(data.bip));
+            const roundedMax = Math.ceil(maxValue / 10) * 10;
+
             const options = {
                 chart: {
                     type: "line",
@@ -21,23 +24,23 @@ document.addEventListener("DOMContentLoaded", function () {
                     },
                 ],
                 xaxis: {
-                    categories: data.labels.map((tgl) => {
-                        const date = new Date(tgl);
-                        const formatter = new Intl.DateTimeFormat("id-ID", {
-                            day: "2-digit",
-                            month: "short",
-                        });
-                        return formatter.format(date); // hasil: "06 Agt"
-                    }),
+                    categories: data.labels,
                     labels: { style: { fontSize: "13px" } },
                     axisBorder: { color: "#e0e6ed" },
                     axisTicks: { color: "#e0e6ed" },
                 },
                 yaxis: {
                     min: 0,
-                    max: 100,
-                    tickAmount: 4,
-                    labels: { style: { fontSize: "13px" } },
+                    max: roundedMax < 50 ? 50 : roundedMax, // jaga agar minimal tetap 50
+                    tickAmount: Math.floor(
+                        (roundedMax < 50 ? 50 : roundedMax) / 10,
+                    ),
+                    labels: {
+                        style: { fontSize: "13px" },
+                        formatter: function (val) {
+                            return val.toFixed(0);
+                        },
+                    },
                 },
                 grid: {
                     borderColor: "#e0e6ed",

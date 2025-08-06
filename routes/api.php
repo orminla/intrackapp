@@ -41,6 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Dashboard
         Route::get('/dashboard/summary', [AdminDashboardController::class, 'summary']);
         Route::get('/dashboard/upcoming', [AdminDashboardController::class, 'upcoming']);
+        Route::get('/chart/inspection', [AdminDashboardController::class, 'inspectionChart']);
+        Route::get('/chart/distribution', [AdminDashboardController::class, 'distributionChart']);
 
         // Jadwal
         Route::get('/schedules', [AdminScheduleController::class, 'index']);
