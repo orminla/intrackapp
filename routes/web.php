@@ -65,6 +65,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/laporan', [ReportController::class, 'index'])->name('laporan');
         Route::put('/laporan/{id}/status', [ReportController::class, 'updateStatus'])->name('laporan.validasi');
+        Route::get('/laporan/{id}', [ReportController::class, 'show'])->name('laporan.show');
 
         Route::get('/riwayat', [HistoryController::class, 'index'])->name('riwayat');
         Route::get('/riwayat/{id}', [HistoryController::class, 'show'])->name('riwayat.show');

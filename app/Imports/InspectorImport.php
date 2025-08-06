@@ -15,6 +15,8 @@ class InspectorImport implements ToCollection
 {
     public function collection(Collection $rows)
     {
+        Log::info("InspectorImport aktif versi terbaru");
+
         // Lewati baris header
         $rows->skip(1)->each(function ($row, $index) {
             try {

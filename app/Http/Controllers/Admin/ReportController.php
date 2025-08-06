@@ -29,22 +29,24 @@ class ReportController extends Controller
             abort(403, 'Hanya admin yang dapat mengakses halaman ini.');
         }
 
-        // Ambil data laporan dengan relasi jadwal, mitra, petugas, dan portofolio
+        // Ambil data laporan dengan relasi lengkap
         $reports = Report::whereIn('status', ['Menunggu konfirmasi', 'Ditolak'])
             ->with([
                 'schedule.partner:partner_id,name,address',
+                'schedule.product:product_id,name',
+                'schedule.selectedDetails:detail_id,name', // ← perbaikan di sini
                 'schedule.inspector' => function ($q) {
                     $q->select('inspector_id', 'name', 'portfolio_id')
                         ->with('portfolio:portfolio_id,name');
-                }
+                },
+                'documents:report_id,doc_id,original_name,file_path'
             ])
             ->get();
 
-        // Format data untuk frontend & API
+
+        // Format data
         $data = $reports->map(function ($report) {
             $alamat = optional($report->schedule->partner)->address ?? '-';
-
-            // Pisah alamat berdasarkan koma
             $parts = explode(',', $alamat);
             $lokasiSingkat = count($parts) >= 2
                 ? trim($parts[0]) . ', ' . trim(end($parts))
@@ -58,10 +60,29 @@ class ReportController extends Controller
                 'petugas'       => optional($report->schedule->inspector)->name ?? '-',
                 'portofolio'    => optional(optional($report->schedule->inspector)->portfolio)->name ?? '-',
                 'status'        => $report->status,
+
+                // Data tambahan untuk modal detail
+                'detail' => [
+                    'mitra'           => optional($report->schedule->partner)->name ?? '-',
+                    'lokasi'          => $alamat,
+                    'tanggal'         => optional($report->schedule->started_date)->format('Y-m-d'),
+                    'tanggal_selesai' => optional($report->finished_date)->format('Y-m-d'),
+                    'produk'          => optional($report->schedule->product)->name ?? '-',
+                    'detail_produk'   => $report->schedule->selectedDetails->pluck('name')->toArray(),
+                    'petugas'         => optional($report->schedule->inspector)->name ?? '-',
+                    'bidang'          => optional(optional($report->schedule->inspector)->portfolio)->name ?? '-',
+                    'dokumen' => $report->documents->map(function ($doc) {
+                        return [
+                            'id' => $doc->doc_id,
+                            'name' => $doc->original_name,
+                            'path' => $doc->file_path,
+                        ];
+                    }) ?? [],
+
+                ],
             ];
         });
 
-        // Untuk API (Postman/AJAX)
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -69,7 +90,6 @@ class ReportController extends Controller
             ]);
         }
 
-        // Untuk Web
         return view('admin.inspection_reports', ['data' => $data]);
     }
 
@@ -96,5 +116,35 @@ class ReportController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Status laporan berhasil diperbarui.');
+    }
+
+    public function show($id)
+    {
+        $schedule = Schedule::with([
+            'partner',
+            'product',
+            'selectedDetails',
+            'report.documents',
+            'inspector.portfolios' // tambahkan relasi portofolio dari inspector
+        ])->findOrFail($id);
+
+        $detail = [
+            'mitra'           => $schedule->partner->name ?? '-',
+            'lokasi'          => $schedule->partner->address ?? '-',
+            'tanggal'         => optional($schedule->started_date)->format('Y-m-d'),
+            'tanggal_selesai' => optional(optional($schedule->report)->finished_date)->format('Y-m-d'),
+            'produk'          => $schedule->product->name ?? '-',
+            'detail_produk'   => $schedule->selectedDetails->pluck('name')->toArray() ?? [],
+            'petugas'         => $schedule->inspector->name ?? '-',
+            'bidang'          => $schedule->inspector->portfolio->name ?? '-',
+            'dokumen'         => optional($schedule->report)->documents->map(function ($doc) {
+                return [
+                    'name' => $doc->original_name,
+                    'path' => asset('storage/' . $doc->file_path),
+                ];
+            }) ?? [],
+        ];
+
+        return view('admin.detail_report.show', compact('detail'));
     }
 }

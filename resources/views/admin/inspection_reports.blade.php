@@ -152,8 +152,9 @@
                                             {{-- Lihat --}}
                                             <button
                                                 class="btn btn-sm px-1 border-0 bg-transparent"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-title="Lihat"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#detailReportModal-{{ $i }}"
+                                                title="Lihat Detail"
                                             >
                                                 <i
                                                     class="ti ti-eye fs-5 text-primary"
@@ -225,6 +226,24 @@
                                             @endif
                                         </td>
                                     </tr>
+                                    {{-- Include modal untuk baris ini --}}
+                                    @include(
+                                        "admin.detail_report_modal",
+                                        [
+                                            "index" => $i,
+                                            "schedule" => $item["detail"] ?? [
+                                                "mitra" => $item["nama_mitra"] ?? "-",
+                                                "lokasi" => $item["lokasi"] ?? "-",
+                                                "tanggal" => $item["tanggal_mulai"] ?? "",
+                                                "tanggal_selesai" => "",
+                                                "produk" => "-",
+                                                "bidang" => $item["portofolio"] ?? "-",
+                                                "petugas" => $item["petugas"] ?? "-",
+                                                "detail_produk" => [],
+                                                "dokumen" => [],
+                                            ],
+                                        ]
+                                    )
                                 @empty
                                     <tr>
                                         <td colspan="8" class="text-center">
