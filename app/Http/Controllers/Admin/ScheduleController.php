@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+
 use App\Models\Schedule;
 use App\Models\Inspector;
 use App\Models\Partner;
@@ -228,20 +231,63 @@ class ScheduleController extends Controller
         // Simpan relasi detail ke tabel pivot
         $schedule->selectedDetails()->sync($detailIds);
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Jadwal berhasil ditambahkan.',
-                'data' => $schedule->load([
-                    'partner:partner_id,name,address',
-                    'inspector:inspector_id,name',
-                    'product:product_id,name',
-                    'selectedDetails:detail_id,name'
-                ])
-            ], 201);
-        }
+        // Kirim WhatsApp
+        $this->kirimWhatsappKeInspector($inspector, $partner, $product, $detail_produk, $validated['started_date']);
 
         return redirect()->back()->with('success', 'Jadwal berhasil ditambahkan.');
+    }
+
+    protected function kirimWhatsappKeInspector($inspector, $partner, $product, $detail_produk, $tanggal)
+    {
+        try {
+            $phone = preg_replace('/[^0-9]/', '', $inspector->phone_num);
+
+            if (str_starts_with($phone, '0')) {
+                $phone = '62' . substr($phone, 1);
+            }
+
+            if (!preg_match('/^62[0-9]{8,13}$/', $phone)) {
+                Log::warning('Nomor telepon tidak valid', ['phone' => $phone]);
+                return false;
+            }
+
+            $message = "*📢 Penugasan Inspeksi Baru*\n\n"
+                . "*Tanggal* : {$tanggal}\n"
+                . "*Mitra* : {$partner->name}\n"
+                . "*Alamat* : {$partner->address}\n"
+                . "*Produk* : {$product->name}\n"
+                . "*Detail Inspeksi* : " . implode(', ', $detail_produk) . "\n\n"
+                . "_Konfirmasi maks. 1x24 jam setelah penugasan. Tanpa konfirmasi, jadwal akan tetap diproses._\n\n"
+                . "Terima kasih - InTrack App.";
+
+            $response = Http::withHeaders([
+                'Authorization' => 'uf1VVEf2S7DGDWMfS5Ry',
+            ])->post('https://api.fonnte.com/send', [
+                'target'  => $phone,
+                'message' => $message,
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Gagal kirim WhatsApp ke petugas', [
+                    'phone'    => $phone,
+                    'response' => $response->body(),
+                ]);
+                return false;
+            }
+
+            Log::info('WhatsApp berhasil dikirim ke petugas', [
+                'phone'         => $phone,
+                'inspector_id'  => $inspector->inspector_id,
+                'jadwal'        => $tanggal,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Exception saat kirim WA ke petugas', [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function update(Request $request, $id)

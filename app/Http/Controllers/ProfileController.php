@@ -85,18 +85,37 @@ class ProfileController extends Controller
         $validated = $validator->validated();
 
         // Handle upload foto baru
+        // if ($request->hasFile('photo_url')) {
+        //     // Hapus file lama jika ada
+        //     if ($user->photo_url && Storage::disk('public')->exists(str_replace('storage/', '', $user->photo_url))) {
+        //         Storage::disk('public')->delete(str_replace('storage/', '', $user->photo_url));
+        //     }
+
+        //     $file = $request->file('photo_url');
+        //     $extension = $file->getClientOriginalExtension();
+        //     $filename = 'profile_' . Str::slug($user->name) . '_' . time() . '.' . $extension;
+        //     $path = $file->storeAs('profile_photos', $filename, 'public');
+
+        //     $validated['photo_url'] = 'storage/' . $path;
+        // }
+
+        // Handle upload foto baru
         if ($request->hasFile('photo_url')) {
             // Hapus file lama jika ada
-            if ($user->photo_url && Storage::disk('public')->exists(str_replace('storage/', '', $user->photo_url))) {
-                Storage::disk('public')->delete(str_replace('storage/', '', $user->photo_url));
+            if ($user->photo_url) {
+                $oldPath = str_replace(asset('storage') . '/', '', $user->photo_url);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
             }
-
             $file = $request->file('photo_url');
             $extension = $file->getClientOriginalExtension();
+            // Simpan langsung ke public/storage/profile_photos
             $filename = 'profile_' . Str::slug($user->name) . '_' . time() . '.' . $extension;
-            $path = $file->storeAs('profile_photos', $filename, 'public');
+            $path = $file->move(public_path('storage/profile_photos'), $filename);
 
-            $validated['photo_url'] = 'storage/' . $path;
+            // Simpan path-nya langsung pakai asset() untuk URL
+            $validated['photo_url'] = asset('storage/profile_photos/' . $filename);
         }
 
         // Update ke tabel users
