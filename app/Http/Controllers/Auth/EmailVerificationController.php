@@ -33,30 +33,40 @@ class EmailVerificationController extends Controller
             'role' => $pending->role,
         ]);
 
+        // Normalisasi nomor WA
+        $rawPhone = preg_replace('/[^0-9]/', '', $pending->phone_num);
+        if (substr($rawPhone, 0, 1) === '0') {
+            $formattedPhone = '62' . substr($rawPhone, 1);
+        } elseif (substr($rawPhone, 0, 3) === '620') {
+            $formattedPhone = '62' . substr($rawPhone, 3);
+        } elseif (substr($rawPhone, 0, 2) === '62') {
+            $formattedPhone = $rawPhone;
+        } elseif (substr($rawPhone, 0, 1) === '+') {
+            $formattedPhone = substr($rawPhone, 1);
+        } else {
+            $formattedPhone = $rawPhone;
+        }
+
         // Buat akun admin atau inspector
         if ($pending->role === 'admin') {
-            Admin::create([
+            \App\Models\Admin::create([
                 'users_id' => $user->id,
                 'name' => $pending->name,
                 'nip' => $pending->nip,
-                'phone_num' => $pending->phone_num,
+                'phone_num' => $formattedPhone,
                 'portfolio_id' => $pending->portfolio_id,
                 'department_id' => $pending->department_id,
             ]);
         } elseif ($pending->role === 'inspector') {
-            Inspector::create([
+            \App\Models\Inspector::create([
                 'users_id' => $user->id,
                 'name' => $pending->name,
                 'nip' => $pending->nip,
-                'phone_num' => $pending->phone_num,
+                'phone_num' => $formattedPhone,
                 'portfolio_id' => $pending->portfolio_id,
                 'department_id' => $pending->department_id,
             ]);
         }
-
-        // Kirim WA info login
-        // $msg = "Selamat! Akun Anda telah aktif 🎉\n\nEmail: {$user->email}\nPassword: {$pending->password_plain}\n\nSilakan login ke sistem.\n\nTerima kasih 🙏";
-        // $this->sendWhatsappMessage($pending->phone_num, $msg);
 
         // Hapus pending
         $pending->delete();
