@@ -45,11 +45,12 @@ Route::middleware('auth')->group(function () {
         $role = Auth::user()->role;
 
         return match ($role) {
-            'admin' => redirect()->route('admin.dashboard'),
-            'inspector' => redirect()->route('inspector.dashboard'),
+            'admin' => view('admin.dashboard'),
+            'inspector' => view('inspector.dashboard'),
             default => abort(403),
         };
     })->name('dashboard');
+
 
     Route::middleware('can:isAdmin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
