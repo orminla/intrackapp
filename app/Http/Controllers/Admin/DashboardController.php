@@ -34,7 +34,9 @@ class DashboardController extends Controller
 
         $summary = [
             'inspeksi_selesai' => Schedule::where('status', 'Selesai')->count(),
-            'inspeksi_hari_ini' => Schedule::whereDate('started_date', $today)->count(),
+            'inspeksi_hari_ini' => Schedule::whereDate('started_date', $today)
+                ->where('status', '!=', 'Selesai')
+                ->count(),
             'inspeksi_mendatang' => $this->upcomingSchedules(null, true)->count(), // ← Tambahkan ini
             'laporan_perlu_validasi' => Report::where('status', 'Menunggu konfirmasi')->count(),
         ];
