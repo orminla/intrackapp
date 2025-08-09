@@ -15,69 +15,84 @@ class InspectorImport implements ToCollection
 {
     public function collection(Collection $rows)
     {
-        Log::info("InspectorImport aktif versi terbaru");
+        if ($rows->count() == 0) {
+            throw new \Exception("File Excel kosong atau tidak sesuai format yang diharapkan.");
+        }
 
-        // Lewati baris header
-        $rows->skip(1)->each(function ($row, $index) {
-            try {
-                $name  = trim($row[0]);  // Kolom A: Nama
-                $nip   = trim($row[1]);  // Kolom B: NIP
-                $phone = trim($row[2]);  // Kolom C: Telepon
-                $portfolioId = $row[4];  // Kolom E: ID Portofolio
-                $email = strtolower(trim($row[5])); // Kolom F: Email
+        $header = $rows->first()->toArray();
 
-                // Skip jika data kosong
-                if (!$name || !$nip || !$phone || !$portfolioId || !$email) {
-                    Log::warning("Baris ke-" . ($index + 2) . " dilewati: Data kosong.");
-                    return;
-                }
+        $expectedHeader = [
+            'nama lengkap',
+            'nip',
+            'telepon',
+            'department id',
+            'portfolio id',
+            'email',
+        ];
 
-                // Cek duplikat email/nip di users, inspectors, dan pending_users
-                if (
-                    User::where('email', $email)->exists() ||
-                    Inspector::where('nip', $nip)->exists() ||
-                    PendingUser::where('email', $email)->exists() ||
-                    PendingUser::where('nip', $nip)->exists()
-                ) {
-                    Log::warning("Baris ke-" . ($index + 2) . " dilewati: Email atau NIP sudah digunakan ($email / $nip).");
-                    return;
-                }
-
-                // Format nomor HP
-                if (preg_match('/^8\d+$/', $phone)) {
-                    $phone = '62' . $phone;
-                } elseif (preg_match('/^0\d+$/', $phone)) {
-                    $phone = '62' . substr($phone, 1);
-                }
-
-                // Generate password default dan token
-                $password = strtolower(explode(' ', $name)[0]) . '123';
-                $token = Str::random(40);
-
-                // Simpan ke pending_users
-                $pending = PendingUser::create([
-                    'name'           => $name,
-                    'email'          => $email,
-                    'phone_num'      => $phone,
-                    'role'           => 'inspector',
-                    'nip'            => $nip,
-                    'portfolio_id'   => $portfolioId,
-                    'password_plain' => $password,
-                    'verif_token'    => $token,
-                    'expired_at'     => now()->addDays(2),
-                ]);
-
-                // Log::debug("Berhasil simpan ke pending_users: " . $pending->id);
-
-                // Kirim link verifikasi
-                $verif = new EmailVerificationController();
-                $verif->sendVerificationLink($pending);
-
-                // Log sukses
-                Log::info("Berhasil import petugas: $email (Baris ke-" . ($index + 2) . ")");
-            } catch (\Throwable $e) {
-                Log::error('Gagal import baris ke-' . ($index + 2) . ': ' . $e->getMessage());
+        foreach ($expectedHeader as $index => $expectedColumnName) {
+            if (!isset($header[$index]) || strtolower(trim($header[$index])) !== $expectedColumnName) {
+                throw new \Exception("Pastikan file Excel memiliki kolom yang benar dan sesuai urutan.");
             }
+        }
+
+        // Skip header
+        $rows = $rows->slice(1);
+
+        $rows->each(function ($row, $index) {
+            $rowNumber = $index + 2;
+
+            $name  = trim($row[0]);
+            $nip   = trim($row[1]);
+            $phone = trim($row[2]);
+            $departmentId = trim($row[3]);
+            $portfolioId = trim($row[4]);
+            $email = strtolower(trim($row[5]));
+
+            if (!$name || !$nip || !$phone || !$departmentId || !$portfolioId || !$email) {
+                throw new \Exception("Data tidak lengkap pada baris $rowNumber.");
+            }
+
+            if (
+                User::where('email', $email)->exists() ||
+                Inspector::where('nip', $nip)->exists() ||
+                PendingUser::where('email', $email)->exists() ||
+                PendingUser::where('nip', $nip)->exists()
+            ) {
+                throw new \Exception("Email atau NIP sudah ada di database pada baris $rowNumber.");
+            }
+
+            if (!is_numeric($departmentId)) {
+                throw new \Exception("Department ID harus berupa angka pada baris $rowNumber.");
+            }
+
+            if (!is_numeric($portfolioId)) {
+                throw new \Exception("Portfolio ID harus berupa angka pada baris $rowNumber.");
+            }
+
+            if (preg_match('/^8\d+$/', $phone)) {
+                $phone = '62' . $phone;
+            } elseif (preg_match('/^0\d+$/', $phone)) {
+                $phone = '62' . substr($phone, 1);
+            }
+
+            $password = strtolower(explode(' ', $name)[0]) . '123';
+            $token = Str::random(40);
+
+            $pending = PendingUser::create([
+                'name'           => $name,
+                'email'          => $email,
+                'phone_num'      => $phone,
+                'role'           => 'inspector',
+                'nip'            => $nip,
+                'department_id'  => $departmentId,
+                'portfolio_id'   => $portfolioId,
+                'password_plain' => $password,
+                'verif_token'    => $token,
+                'expired_at'     => now()->addDays(2),
+            ]);
+
+            (new EmailVerificationController())->sendVerificationLink($pending);
         });
     }
 }

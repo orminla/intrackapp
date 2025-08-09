@@ -124,7 +124,6 @@
                                                 {{ $portfolio->portfolio_id == $inspector["portfolio_id"] ? "selected" : "" }}
                                             >
                                                 {{ $portfolio->name }}
-                                                ({{ $portfolio->department->name }})
                                             </option>
                                         @endif
                                     @endforeach
@@ -155,39 +154,111 @@
         const allPortfolios = @json($portfolios);
 
         document.addEventListener('DOMContentLoaded', () => {
-            const modals = document.querySelectorAll('.modal');
+            const allPortfolios = @json($portfolios);
 
-            modals.forEach((modal_edit) => {
-                const btn = modal_edit.querySelector('[id^="editSaveBtn-"]');
-                const form = modal_edit.querySelector('form');
-                const inputs = modal_edit.querySelectorAll('input, select');
+            document.querySelectorAll('.modal').forEach((modalEdit) => {
+                if (!modalEdit.id.startsWith('updateModal-')) return;
+
+                const btn = modalEdit.querySelector('[id^="editSaveBtn-"]');
+                const form = modalEdit.querySelector('form');
+                const inputs = modalEdit.querySelectorAll('input, select');
 
                 let isEditing = false;
 
-                // Handle tombol Edit/Simpan hanya sekali per modal
-                if (btn) {
-                    btn.addEventListener('click', () => {
-                        if (!isEditing) {
-                            // Aktifkan semua field (kecuali email dan NIP)
-                            inputs.forEach((el) => {
-                                const name = el.getAttribute('name');
-                                el.removeAttribute('disabled');
-                            });
+                btn?.addEventListener('click', () => {
+                    if (!isEditing) {
+                        // Aktifkan semua input/select kecuali email & nip tetap disable jika mau
+                        inputs.forEach((el) => {
+                            el.removeAttribute('disabled');
+                        });
 
-                            // Ubah tombol menjadi Simpan
-                            btn.textContent = 'Simpan';
-                            btn.classList.remove('btn-primary');
-                            btn.classList.add('btn-success');
-
-                            isEditing = true;
-                        } else {
-                            form.submit();
+                        btn.textContent = 'Simpan';
+                        btn.classList.replace('btn-primary', 'btn-success');
+                        isEditing = true;
+                    } else {
+                        if (!form.checkValidity()) {
+                            form.reportValidity();
+                            return;
                         }
-                    });
-                }
 
-                // Dropdown dinamis: update Portofolio berdasarkan Bidang
-                modal_edit
+                        const formData = new FormData(form);
+                        fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]',
+                                ).content,
+                                Accept: 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        })
+                            .then(async (response) => {
+                                const data = await response.json();
+                                if (!response.ok)
+                                    throw new Error(
+                                        data.message ||
+                                            'Gagal memperbarui data',
+                                    );
+                                return data;
+                            })
+                            .then((data) => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text:
+                                        data.message ||
+                                        'Data petugas berhasil diperbarui.',
+                                    timer: 1500,
+                                    showConfirmButton: false,
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                        confirmButton:
+                                            'btn btn-primary rounded-2 px-4',
+                                    },
+                                    buttonsStyling: false,
+                                });
+
+                                window.location.reload();
+
+                                // Tutup modal otomatis
+                                const modalInstance =
+                                    bootstrap.Modal.getInstance(modalEdit);
+                                if (modalInstance) modalInstance.hide();
+
+                                // Disable input kembali
+                                inputs.forEach((el) => {
+                                    el.setAttribute('disabled', true);
+                                });
+
+                                btn.textContent = 'Edit Profil';
+                                btn.classList.replace(
+                                    'btn-success',
+                                    'btn-primary',
+                                );
+                                isEditing = false;
+                            })
+                            .catch((error) => {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal!',
+                                    text:
+                                        error.message ||
+                                        'Terjadi kesalahan, silakan coba lagi.',
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                        confirmButton:
+                                            'btn btn-primary rounded-2 px-4',
+                                    },
+                                    buttonsStyling: false,
+                                });
+                            });
+                    }
+                });
+
+                // Dropdown dinamis untuk Bidang -> Portofolio
+                modalEdit
                     .querySelectorAll('.department-select')
                     .forEach((select) => {
                         select.addEventListener('change', function () {
@@ -198,7 +269,6 @@
 
                             if (targetSelect) {
                                 targetSelect.innerHTML = ''; // Kosongkan dulu
-
                                 allPortfolios.forEach((portfolio) => {
                                     if (
                                         portfolio.department.department_id ==
@@ -215,21 +285,13 @@
                         });
                     });
 
-                // Saat modal ditutup, reset ke kondisi awal
-                modal_edit.addEventListener('hidden.bs.modal', () => {
+                // Reset form & tombol saat modal ditutup
+                modalEdit.addEventListener('hidden.bs.modal', () => {
                     inputs.forEach((el) => {
-                        const name = el.getAttribute('name');
-                        if (name !== 'email' && name !== 'nip') {
-                            el.setAttribute('disabled', true);
-                        }
+                        el.setAttribute('disabled', true);
                     });
-
-                    if (btn) {
-                        btn.textContent = 'Edit Profil';
-                        btn.classList.remove('btn-success');
-                        btn.classList.add('btn-primary');
-                    }
-
+                    btn.textContent = 'Edit Profil';
+                    btn.classList.replace('btn-success', 'btn-primary');
                     isEditing = false;
                 });
             });

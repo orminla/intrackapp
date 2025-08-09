@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -26,126 +27,85 @@ class InspectorController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        // Ambil semua inspector dengan relasi portfolio dan department
-        $inspectors = Inspector::with(['portfolio.department'])->get();
+        $showing = (int) $request->input('showing', 10);
+        $filter  = $request->input('filter', 'all');
+        $currentPage = (int) $request->query('page', 1);
 
-        $formatted = $inspectors->map(function ($inspector) {
-            // Hitung beban kerja: jumlah jadwal yang status belum selesai
-            $bebanKerja = $inspector->schedules()
-                ->where('status', '!=', 'Selesai')
-                ->count();
+        $query = Inspector::with(['portfolio.department', 'schedules.report'])
+            ->orderBy('name');
 
-            // Total jadwal
-            $totalJadwal = $inspector->schedules()->count();
+        if ($filter !== 'all') {
+            $query->whereHas('schedules', function ($q) use ($filter) {
+                $q->where('status', $filter);
+            });
+        }
 
-            // Jadwal selesai & disetujui
-            $pekerjaanSelesai = $inspector->schedules()
+        // Hitung total data
+        $totalData = $query->count();
+
+        // Kalau showing > total data, sesuaikan
+        if ($totalData < $showing) {
+            $showing = $totalData > 0 ? $totalData : 1;
+        }
+
+        // Kalau offset halaman sekarang melebihi total data, reset ke page 1
+        if (($currentPage - 1) * $showing >= $totalData) {
+            $currentPage = 1;
+        }
+
+        // Ambil data dengan pagination
+        $inspectors = $query->paginate($showing, ['*'], 'page', $currentPage);
+
+        // Map data untuk menambahkan kolom tambahan
+        $formatted = $inspectors->getCollection()->map(function ($inspector) {
+            $schedules = $inspector->schedules;
+
+            $bebanKerja = $schedules->where('status', '!=', 'Selesai')->count();
+            $totalJadwal = $schedules->count();
+
+            $pekerjaanSelesai = $schedules
                 ->where('status', 'Selesai')
-                ->whereHas('report', function ($q) {
-                    $q->where('status', 'Disetujui');
+                ->filter(function ($schedule) {
+                    return $schedule->report && $schedule->report->status === 'Disetujui';
                 })
                 ->count();
 
-            // Hitung kinerja
-            $kinerja = $totalJadwal > 0 ? round(($pekerjaanSelesai / $totalJadwal) * 100) : 0;
+            $kinerja = $totalJadwal > 0
+                ? round(($pekerjaanSelesai / $totalJadwal) * 100)
+                : 0;
 
             return [
-                'nip'           => $inspector->nip,
-                'name'          => $inspector->name,
-                'phone_num'     => $inspector->phone_num,
-                'email'         => $inspector->user->email,
-                'portfolio_id'  => $inspector->portfolio_id,
-                'portfolio'     => $inspector->portfolio?->name,
-                'department'    => $inspector->portfolio?->department?->name,
-                'beban_kerja'   => $bebanKerja,
-                'kinerja'       => $kinerja,
+                'nip'               => $inspector->nip,
+                'name'              => $inspector->name,
+                'phone_num'         => $inspector->phone_num,
+                'email'             => $inspector->user->email,
+                'portfolio_id'      => $inspector->portfolio_id,
+                'portfolio'         => $inspector->portfolio?->name,
+                'department'        => $inspector->portfolio?->department?->name,
+                'beban_kerja'       => $bebanKerja,
+                'pekerjaan_selesai' => $pekerjaanSelesai,
+                'kinerja'           => $kinerja,
             ];
         });
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $formatted,
-            ]);
-        }
+        // Bungkus lagi ke paginator supaya pagination tetap jalan
+        $inspectorsFormatted = new \Illuminate\Pagination\LengthAwarePaginator(
+            $formatted,
+            $inspectors->total(),
+            $inspectors->perPage(),
+            $inspectors->currentPage(),
+            [
+                'path'  => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
 
-        $departments = Department::all();
-        $portfolios = Portfolio::with('department')->get();
-
-        // session()->flash('success', 'Data petugas berhasil diimpor.');
         return view('admin.inspectors', [
-            'inspectors' => $formatted,
-            'departments' => $departments,
-            'portfolios' => $portfolios,
+            'inspectors'  => $inspectorsFormatted,
+            'departments' => Department::all(),
+            'portfolios'  => Portfolio::with('department')->get(),
         ]);
     }
-
-    // public function store(Request $request)
-    // {
-    //     // Hanya admin yang boleh
-    //     $user = Auth::user();
-    //     if ($user->role !== 'admin') {
-    //         $message = 'Hanya admin yang dapat menambahkan petugas.';
-    //         return $request->expectsJson()
-    //             ? response()->json(['success' => false, 'message' => $message], 403)
-    //             : abort(403, $message);
-    //     }
-
-    //     // Validasi
-    //     $validated = $request->validate([
-    //         'name'          => 'required|string|max:255',
-    //         'nip'           => 'required|string|max:100|unique:inspectors,nip',
-    //         'phone_num'     => 'required|string|max:20',
-    //         'department_id' => 'required|exists:departments,department_id',
-    //         'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
-    //         'email'         => 'required|email|unique:users,email',
-    //     ]);
-
-    //     // Format nomor HP: jika dimulai dengan 08 ubah ke +62
-    //     $phone = $validated['phone_num'];
-    //     if (strpos($phone, '08') === 0) {
-    //         $phone = '62' . substr($phone, 1);
-    //     }
-
-    //     // Buat password default: nama depan + 123
-    //     $firstName = strtolower(strtok($validated['name'], ' '));
-    //     $defaultPassword = $firstName . '123';
-
-    //     // Buat user baru
-    //     $newUser = User::create([
-    //         'email'    => $validated['email'],
-    //         'password' => Hash::make($defaultPassword),
-    //         'role'     => 'inspector',
-    //     ]);
-
-    //     // Buat inspector (petugas) dengan FK users_id
-    //     $inspector = Inspector::create([
-    //         'nip'           => $validated['nip'],
-    //         'name'          => $validated['name'],
-    //         'phone_num'     => $phone,
-    //         'portfolio_id'  => $validated['portfolio_id'],
-    //         'users_id'       => $newUser->id,
-    //     ]);
-
-    //     // Respons API
-    //     if ($request->expectsJson()) {
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Petugas dan akun berhasil dibuat.',
-    //             'data' => [
-    //                 'petugas'          => $inspector,
-    //                 'akun'             => $newUser,
-    //                 'default_password' => $defaultPassword
-    //             ]
-    //         ], 201);
-    //     }
-
-    //     // Respons Web
-    //     return redirect()->back()->with([
-    //         'success' => 'Petugas dan akun berhasil dibuat.',
-    //         'default_password' => $defaultPassword,
-    //     ]);
-    // }
 
     public function store(Request $request)
     {
@@ -161,7 +121,14 @@ class InspectorController extends Controller
         // Validasi input
         $validated = $request->validate([
             'name'          => 'required|string|max:255',
-            'nip'           => 'required|string|max:100|unique:inspectors,nip|unique:pending_users,nip',
+            'nip' => [
+                'required',
+                'string',
+                'size:18',
+                'regex:/^\d{18}$/',
+                'unique:inspectors,nip',
+                'unique:pending_users,nip',
+            ],
             'phone_num'     => 'required|string|max:20',
             'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
             'department_id' => 'required|exists:departments,department_id',
@@ -195,7 +162,7 @@ class InspectorController extends Controller
         ]);
 
         // Kirim link verifikasi (via EmailVerificationController)
-        $verif = new \App\Http\Controllers\Auth\EmailVerificationController();
+        $verif = new EmailVerificationController();
         $verifLink = url('/verify-email?token=' . $token);
         $verif->sendVerificationLink($pending);
 
@@ -203,35 +170,52 @@ class InspectorController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Petugas pending berhasil ditambahkan. Silakan verifikasi email.',
+                'message' => 'Petugas berhasil ditambahkan. Menunggu verifikasi akun.',
                 'verifikasi_link' => $verifLink,
             ], 201);
         }
 
         // Jika request Web
-        return redirect()->back()->with([
-            'success' => 'Petugas berhasil ditambahkan. Tunggu verifikasi email.',
-            'verifikasi_link' => $verifLink,
-        ]);
+        return redirect()->back()->with('success', 'Petugas berhasil ditambahkan. Tunggu verifikasi email.');
     }
 
     public function import(Request $request)
     {
-        // Hanya admin yang boleh
-        $user = Auth::user();
-        if ($user->role !== 'admin') {
-            $message = 'Hanya admin yang dapat menambahkan petugas.';
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $message], 403)
-                : abort(403, $message);
+        try {
+            $user = Auth::user();
+            if ($user->role !== 'admin') {
+                $message = 'Hanya admin yang dapat menambahkan petugas.';
+                return $request->expectsJson()
+                    ? response()->json(['success' => false, 'message' => $message], 403)
+                    : abort(403, $message);
+            }
+
+            $request->validate([
+                'file' => 'required|file|mimes:xlsx,xls',
+            ]);
+
+            Excel::import(new InspectorImport, $request->file('file'));
+
+            // Response JSON jika ajax
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Import data berhasil! Menunggu konfirmasi petugas.',
+                ]);
+            }
+
+            // Jika bukan ajax, redirect seperti biasa
+            return redirect()->back()->with('success', 'Import data berhasil! Menunggu konfirmasi petugas.');
+        } catch (\Throwable $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Import data gagal: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->back()->with('error', 'Import data gagal! ' . $e->getMessage());
         }
-
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
-        ]);
-
-        Excel::import(new InspectorImport, $request->file('file'));
-        return redirect()->route('admin.petugas.index')->withSuccess('Data petugas berhasil diimpor.');
     }
 
     public function show($nip)
@@ -247,14 +231,23 @@ class InspectorController extends Controller
     public function update(Request $request, $nip)
     {
         $inspector = Inspector::where('nip', $nip)->firstOrFail();
+        $user = $inspector->user;
 
         $validated = $request->validate([
             'name'         => 'required|string|max:255',
+            'nip'          => [
+                'required',
+                'string',
+                'size:18',
+                'regex:/^\d{18}$/',
+                'unique:inspectors,nip,' . $inspector->inspector_id . ',inspector_id'
+            ],
+            'email'        => 'required|email|unique:users,email,' . ($user ? $user->id : 'NULL'),
             'phone_num'    => 'required|string|max:20',
             'portfolio_id' => 'required|exists:portfolios,portfolio_id',
         ]);
 
-        // Format ulang no HP
+        // Format nomor HP
         $phone = $validated['phone_num'];
         if (strpos($phone, '08') === 0) {
             $phone = '+62' . substr($phone, 1);
@@ -262,12 +255,32 @@ class InspectorController extends Controller
 
         // Update data petugas
         $inspector->update([
+            'nip'          => $validated['nip'],
             'name'         => $validated['name'],
             'phone_num'    => $phone,
             'portfolio_id' => $validated['portfolio_id'],
         ]);
 
-        return redirect()->back()->with('success', 'Data petugas berhasil diperbarui.');
+        // Update email user terkait
+        if ($user) {
+            $user->email = $validated['email'];
+            // Jika user juga menyimpan nip, update juga jika ada kolom di user
+            if (isset($user->nip)) {
+                $user->nip = $validated['nip'];
+            }
+            $user->save();
+        }
+
+        $message = 'Data petugas berhasil diperbarui.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function destroy($nip)

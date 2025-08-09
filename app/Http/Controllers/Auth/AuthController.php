@@ -35,14 +35,11 @@ class AuthController extends Controller
         ]);
 
         if (!Auth::attempt($credentials, $request->boolean('remember'))) {
-            // Kalau permintaan dari API (Postman, Vue, dll)
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Login gagal. Email atau password salah.'
                 ], 401);
             }
-
-            // Kalau dari web
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed')
             ]);
@@ -51,7 +48,6 @@ class AuthController extends Controller
         $user = Auth::user();
         $user->makeHidden(['id', 'created_at', 'updated_at']);
 
-        // ✅ API: kirim token + data user
         if ($request->expectsJson()) {
             $token = $user->createToken('api-token')->plainTextToken;
 
@@ -62,7 +58,7 @@ class AuthController extends Controller
             ]);
         }
 
-        // ✅ Web (Blade): redirect sesuai role
+        // Web (Blade): redirect sesuai role
         $request->session()->regenerate();
 
         return match ($user->role) {

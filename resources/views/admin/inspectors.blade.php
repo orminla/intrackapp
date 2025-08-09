@@ -1,6 +1,11 @@
 @extends("admin.layouts.app")
 
-@section("title", "Data Petugas")
+@section("title", "Petugas")
+
+@php
+    $showingSelected = request()->get("showing", "10");
+    $filterSelected = request()->get("filter", "all");
+@endphp
 
 @section("content")
     <div class="row d-flex align-items-stretch">
@@ -9,7 +14,7 @@
             <div class="card w-100 h-100 rounded-4">
                 <div class="card-body">
                     <div
-                        class="d-flex justify-content-between align-items-start flex-wrap mb-3"
+                        class="d-flex justify-content-between align-items-start flex-wrap"
                     >
                         <div class="mb-3 mb-md-0">
                             <h4>Data Inspektor</h4>
@@ -22,6 +27,7 @@
                                     Showing
                                 </span>
                                 <select
+                                    id="showing"
                                     class="form-select form-select-sm border-0 bg-light"
                                     style="
                                         width: auto;
@@ -30,30 +36,67 @@
                                         font-size: 0.875rem;
                                     "
                                 >
-                                    <option value="10">10</option>
-                                    <option value="25">25</option>
-                                    <option value="50">50</option>
+                                    <option
+                                        value="10"
+                                        {{ $showingSelected == "10" ? "selected" : "" }}
+                                    >
+                                        10
+                                    </option>
+                                    <option
+                                        value="25"
+                                        {{ $showingSelected == "25" ? "selected" : "" }}
+                                    >
+                                        25
+                                    </option>
+                                    <option
+                                        value="50"
+                                        {{ $showingSelected == "50" ? "selected" : "" }}
+                                    >
+                                        50
+                                    </option>
                                 </select>
                             </div>
-
-                            <!-- Filter -->
-                            <div class="d-flex align-items-center gap-2">
+                            {{--
+                                <!-- Filter -->
+                                <div class="d-flex align-items-center gap-2">
                                 <span class="fw-normal text-muted">Filter</span>
                                 <select
-                                    class="form-select form-select-sm border-0 bg-light"
-                                    style="
-                                        width: auto;
-                                        min-width: 100px;
-                                        height: 36px;
-                                        font-size: 0.875rem;
-                                    "
+                                id="filter"
+                                class="form-select form-select-sm border-0 bg-light"
+                                style="
+                                width: auto;
+                                min-width: 100px;
+                                height: 36px;
+                                font-size: 0.875rem;
+                                "
                                 >
-                                    <option value="all">Semua</option>
-                                    <option value="selesai">Selesai</option>
-                                    <option value="diproses">Diproses</option>
-                                    <option value="menunggu">Menunggu</option>
+                                <option
+                                value="all"
+                                {{ $filterSelected == "all" ? "selected" : "" }}
+                                >
+                                Semua
+                                </option>
+                                <option
+                                value="selesai"
+                                {{ $filterSelected == "selesai" ? "selected" : "" }}
+                                >
+                                Selesai
+                                </option>
+                                <option
+                                value="diproses"
+                                {{ $filterSelected == "diproses" ? "selected" : "" }}
+                                >
+                                Diproses
+                                </option>
+                                <option
+                                value="menunggu konfirmasi"
+                                {{ $filterSelected == "menunggu konfirmasi" ? "selected" : "" }}
+                                >
+                                Menunggu
+                                </option>
                                 </select>
-                            </div>
+                                </div>
+                            --}}
 
                             <!-- Import Excel -->
                             <button
@@ -63,7 +106,7 @@
                                 onclick="triggerFileImport()"
                             >
                                 <i class="ti ti-upload fs-5"></i>
-                                Import Data Petugas
+                                Unggah Petugas
                             </button>
 
                             <!-- Form dan input file disembunyikan -->
@@ -80,7 +123,6 @@
                                     name="file"
                                     id="importFileInput"
                                     accept=".xlsx,.xls"
-                                    onchange="confirmImport()"
                                 />
                             </form>
 
@@ -118,19 +160,33 @@
                                     >
                                         Nama
                                     </th>
-                                    <th
+                                    {{--
+                                        <th
                                         class="px-0 text-dark text-center fw-bold"
-                                    >
+                                        >
                                         Bidang
-                                    </th>
+                                        </th>
+                                    --}}
                                     <th
                                         class="px-0 text-dark text-center fw-bold"
                                     >
                                         Portofolio
                                     </th>
-                                    <!-- =<th class="px-0 text-dark text-center fw-bold">Beban Saat Ini</th>
-                                <th class="px-0 text-dark text-center fw-bold">Total Inspeksi</th>
-                                <th class="px-0 text-dark text-center fw-bold">Kinerja</th> -->
+                                    <th
+                                        class="px-0 text-dark text-center fw-bold"
+                                    >
+                                        Beban Saat Ini
+                                    </th>
+                                    <th
+                                        class="px-0 text-dark text-center fw-bold"
+                                    >
+                                        Total Inspeksi
+                                    </th>
+                                    <th
+                                        class="px-0 text-dark text-center fw-bold"
+                                    >
+                                        Kinerja
+                                    </th>
                                     <th
                                         class="px-0 text-dark text-center fw-bold"
                                     >
@@ -156,16 +212,34 @@
                                         >
                                             {{ $inspector["name"] }}
                                         </td>
-                                        <td
+                                        {{--
+                                            <td
                                             class="px-0 text-center align-middle"
-                                        >
+                                            >
                                             {{ $inspector["department"] }}
+                                            </td>
+                                        --}}
+                                        <td
+                                            class="px-0 text-center align-middle"
+                                        >
+                                            {{ explode("-", $inspector["portfolio"])[0] }}
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $inspector["portfolio"] }}
+                                            {{ $inspector["beban_kerja"] ?? 0 }}
                                         </td>
+                                        <td
+                                            class="px-0 text-center align-middle"
+                                        >
+                                            {{ $inspector["pekerjaan_selesai"] ?? 0 }}
+                                        </td>
+                                        <td
+                                            class="px-0 text-center align-middle"
+                                        >
+                                            {{ $inspector["kinerja"] ?? 0 }}%
+                                        </td>
+
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
@@ -205,6 +279,8 @@
                                 @endforeach
                             </tbody>
                         </table>
+
+                        <x-table-pagination :data="$inspectors" />
                     </div>
                 </div>
 
@@ -213,61 +289,219 @@
             </div>
         </div>
     </div>
-
-    @if (session("success"))
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <script>
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: '{{ session("success") }}',
-                confirmButtonText: 'OK',
-            }).then(() => {
-                location.href = '{{ route("admin.petugas.index") }}';
-            });
-        </script>
-    @endif
 @endsection
 
 @push("scripts")
     <script>
-        function triggerFileImport() {
-            document.getElementById('importFileInput').click();
-        }
+        document.addEventListener('DOMContentLoaded', function () {
+                function triggerFileImport() {
+                    document.getElementById('importFileInput').click();
+                }
 
-        function confirmImport() {
-            const input = document.getElementById('importFileInput');
-            if (input.files.length > 0) {
-                const fileName = input.files[0].name;
+                // Fungsi reload dengan parameter query sesuai pilihan user
+                function reloadPageWithParams() {
+                    const showing = document.getElementById('showing').value;
+                    const params = new URLSearchParams(window.location.search);
 
-                Swal.fire({
-                    title: 'Konfirmasi Import',
-                    text: `Yakin ingin mengimpor file "${fileName}"?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, impor',
-                    cancelButtonText: 'Batal',
-                    customClass: {
-                        popup: 'rounded-4',
-                        confirmButton: 'btn btn-success rounded-2 me-2 px-4',
-                        cancelButton: 'btn btn-outline-danger rounded-2 px-4',
-                    },
-                    buttonsStyling: false,
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        document.getElementById('importForm').submit();
-                    } else {
-                        input.value = ''; // reset input file
-                    }
+                    params.set('showing', showing);
+                    params.set('page', 1); // reset page ke 1 biar gak nyangkut di page sebelumnya
+
+                    window.location.href = `${window.location.pathname}?${params.toString()}`;
+                }
+
+                // Event untuk ganti jumlah data per halaman
+                const showingEl = document.getElementById('showing');
+                if (showingEl) {
+                    showingEl.addEventListener('change', reloadPageWithParams);
+                }
+
+                // document.getElementById('filter').addEventListener('change', reloadPageWithParams);
+
+                document
+                    .getElementById('importFileInput')
+                    .addEventListener('change', function () {
+                        const input = this;
+                        if (input.files.length > 0) {
+                            const fileName = input.files[0].name;
+
+                            Swal.fire({
+                                title: 'Konfirmasi Import',
+                                text: `Yakin ingin mengimpor file "${fileName}"?`,
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: 'Ya, impor',
+                                cancelButtonText: 'Batal',
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton: 'btn btn-success rounded-2 me-2 px-4',
+                                    cancelButton: 'btn btn-outline-danger rounded-2 px-4',
+                                },
+                                buttonsStyling: false,
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    const formData = new FormData();
+                                    formData.append('file', input.files[0]);
+
+                                    fetch('{{ route("admin.petugas.import") }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRF-TOKEN': document.querySelector(
+                                                'meta[name="csrf-token"]',
+                                            ).content,
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            Accept: 'application/json',
+                                        },
+                                        body: formData,
+                                    })
+                                        .then((response) => response.json())
+                                        .then((data) => {
+                                            if (data.success) {
+                                                Swal.fire({
+                                                    icon: 'success',
+                                                    title: 'Berhasil!',
+                                                    text:
+                                                        data.message ||
+                                                        'Import data berhasil. Menunggu Petugas Verifikasi akun',
+                                                    timer: 1500,
+                                                    showConfirmButton: false,
+                                                    customClass: {
+                                                        popup: 'rounded-4',
+                                                        confirmButton:
+                                                            'btn btn-primary rounded-2 px-4',
+                                                    },
+                                                }).then(() => {
+                                                    location.reload();
+                                                });
+                                            } else {
+                                                throw new Error(
+                                                    data.message || 'Import gagal.',
+                                                );
+                                            }
+                                        })
+                                        .catch((error) => {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Gagal!',
+                                                text: error.message,
+                                                customClass: {
+                                                    popup: 'rounded-4',
+                                                    confirmButton:
+                                                        'btn btn-primary rounded-2 px-4',
+                                                },
+                                            });
+                                        });
+                                } else {
+                                    input.value = ''; // reset file input
+                                }
+                            });
+                        }
+                    });
+
+                window.triggerFileImport = triggerFileImport; // expose function jika dipanggil dari HTML onclick
+
+                function showEditModal(nip) {
+                    const modal = new bootstrap.Modal(
+                        document.getElementById(`updateModal-${nip}`),
+                    );
+                    modal.show();
+                }
+
+                window.showEditModal = showEditModal; // expose jika dipanggil dari HTML onclick
+
+                // Konfirmasi sebelum hapus
+                document.querySelectorAll('.delete-button').forEach((btn) => {
+                    btn.addEventListener('click', function () {
+                        const form = btn.closest('form');
+                        Swal.fire({
+                            title: 'Yakin ingin menghapus data petugas?',
+                            text: 'Tindakan ini tidak dapat dibatalkan!',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, hapus!',
+                            cancelButtonText: 'Batal',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-danger rounded-2 px-4 me-2',
+                                cancelButton: 'btn btn-outline-muted rounded-2 px-4',
+                            },
+                            buttonsStyling: false,
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                fetch(form.action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        Accept: 'application/json',
+                                    },
+                                    body: new URLSearchParams(new FormData(form)),
+                                })
+                                .then(async (response) => {
+                                    const data = await response.json();
+                                    if (!response.ok) throw new Error(data.message || 'Gagal menghapus data');
+                                    return data;
+                                })
+                                .then((data) => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Berhasil!',
+                                        text: data.message || 'Data petugas berhasil dihapus.',
+                                        timer: 1500,
+                                        showConfirmButton: false,
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                })
+                                .catch((error) => {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Gagal!',
+                                        text: error.message || 'Terjadi kesalahan saat menghapus.',
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    });
+                                });
+                            }
+                        });
+                    });
                 });
-            }
-        }
 
-        function showEditModal(nip) {
-            const modal = new bootstrap.Modal(
-                document.getElementById(`updateModal-${nip}`),
-            );
-            modal.show();
-        }
+                @if(session('success') || session('error') || session('warning'))
+                    Swal.fire({
+                        icon: '{{ session("success") ? "success" : (session("error") ? "error" : "warning") }}',
+                        title: '{{ session("success") ? "Berhasil!" : (session("error") ? "Gagal!" : "Perhatian!") }}',
+                        text: "{{ session('success') ?? session('error') ?? session('warning') }}",
+                        timer: 1500,
+                        showConfirmButton: false,
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        buttonsStyling: false,
+                    });
+                @endif
+
+                @if ($errors->any())
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        html: '{!! implode("<br>", $errors->all()) !!}',
+                        timer: 1500,
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        buttonsStyling: false,
+                    });
+                @endif
+            });
     </script>
 @endpush

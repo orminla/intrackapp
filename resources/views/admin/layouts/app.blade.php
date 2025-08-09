@@ -3,7 +3,10 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="csrf-token" content="{{ csrf_token() }}" />
+
         <title>@yield("title", "Admin") - Sistem Inspeksi</title>
+
         <link
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css"
@@ -49,6 +52,48 @@
             .profile-hover:hover span,
             .profile-hover:hover small {
                 color: var(--bs-primary);
+            }
+            
+            .pagination {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.85rem; /* ukuran font sekitar 13-14px */
+                max-width: fit-content;
+                border-radius: 4px;
+                padding: 0;
+            }
+
+            .pagination svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            .pagination .page-link {
+                font-size: 0.85rem;
+                padding: 0.5rem 1rem;
+                min-width: auto;
+                height: auto;
+                line-height: 1.3;
+                padding-left: 1.2rem;
+                padding-right: 1.2rem;
+            }
+
+            .pagination .page-item {
+                margin: 0;
+            }
+
+            .pagination .page-item.active .page-link,
+            .pagination .page-item.disabled .page-link {
+                font-size: 0.85rem;
+                padding: 0.5rem 1rem;
+            }
+
+            .showing-text {
+                color: #adb5bd; /* abu muda */
+                font-size: 0.85rem;
+                margin: 0; /* pastikan gak ada margin */
             }
         </style>
 
@@ -118,91 +163,93 @@
                     new bootstrap.Tooltip(el);
                 });
         </script>
-
-        <!-- SweetAlert2 untuk konfirmasi penghapusan -->
-        <script>
+        {{--
+            <!-- SweetAlert2 untuk konfirmasi penghapusan -->
+            <script>
             document.addEventListener('DOMContentLoaded', function () {
-                document
-                    .querySelectorAll('.delete-button')
-                    .forEach((button) => {
-                        button.addEventListener('click', function (e) {
-                            const form = button.closest('form');
-
-                            Swal.fire({
-                                title: 'Yakin ingin menghapus?',
-                                text: 'Data tidak dapat dikembalikan setelah dihapus!',
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonText: 'Ya, hapus!',
-                                cancelButtonText: 'Batal',
-                                customClass: {
-                                    popup: 'rounded-4',
-                                    confirmButton:
-                                        'btn btn-danger rounded-2 px-4 me-2',
-                                    cancelButton:
-                                        'btn btn-outline-muted rounded-2 px-4',
-                                },
-                                buttonsStyling: false,
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    form.submit();
-                                }
-                            });
-                        });
-                    });
+            document
+            .querySelectorAll('.delete-button')
+            .forEach((button) => {
+            button.addEventListener('click', function (e) {
+            const form = button.closest('form');
+            
+            Swal.fire({
+            title: 'Yakin ingin menghapus?',
+            text: 'Data tidak dapat dikembalikan setelah dihapus!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal',
+            customClass: {
+            popup: 'rounded-4',
+            confirmButton:
+            'btn btn-danger rounded-2 px-4 me-2',
+            cancelButton:
+            'btn btn-outline-muted rounded-2 px-4',
+            },
+            buttonsStyling: false,
+            }).then((result) => {
+            if (result.isConfirmed) {
+            form.submit();
+            }
             });
-        </script>
-        <!-- SweetAlert2 untuk konfirmasi penolakan -->
-        <script>
+            });
+            });
+            });
+            </script>
+            
+            <!-- SweetAlert2 untuk konfirmasi penolakan -->
+            <script>
             document.addEventListener('DOMContentLoaded', function () {
-                document
-                    .querySelectorAll('.btn-submit-rejected')
-                    .forEach((button) => {
-                        button.addEventListener('click', function () {
-                            const form = button.closest('form');
-                            const alasanInput = form.querySelector(
-                                'textarea[name="alasan"]',
-                            );
-
-                            if (!alasanInput.value.trim()) {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Alasan penolakan wajib diisi!',
-                                    confirmButtonText: 'OK',
-                                    customClass: {
-                                        popup: 'rounded-4',
-                                        confirmButton:
-                                            'btn btn-primary rounded-2 px-4',
-                                    },
-                                    buttonsStyling: false,
-                                });
-                                return;
-                            }
-
-                            Swal.fire({
-                                title: 'Yakin ingin melakukan penolakan?',
-                                text: 'Tindakan ini tidak dapat dibatalkan!',
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonText: 'Ya, tolak!',
-                                cancelButtonText: 'Batal',
-                                customClass: {
-                                    popup: 'rounded-4',
-                                    confirmButton:
-                                        'btn btn-danger rounded-2 px-4 me-2',
-                                    cancelButton:
-                                        'btn btn-outline-muted rounded-2 px-4',
-                                },
-                                buttonsStyling: false,
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    form.submit();
-                                }
-                            });
-                        });
-                    });
+            document
+            .querySelectorAll('.btn-submit-rejected')
+            .forEach((button) => {
+            button.addEventListener('click', function () {
+            const form = button.closest('form');
+            const alasanInput = form.querySelector(
+            'textarea[name="alasan"]',
+            );
+            
+            if (!alasanInput.value.trim()) {
+            Swal.fire({
+            icon: 'warning',
+            title: 'Alasan penolakan wajib diisi!',
+            confirmButtonText: 'OK',
+            customClass: {
+            popup: 'rounded-4',
+            confirmButton:
+            'btn btn-primary rounded-2 px-4',
+            },
+            buttonsStyling: false,
             });
-        </script>
+            return;
+            }
+            
+            Swal.fire({
+            title: 'Yakin ingin melakukan penolakan?',
+            text: 'Tindakan ini tidak dapat dibatalkan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, tolak!',
+            cancelButtonText: 'Batal',
+            customClass: {
+            popup: 'rounded-4',
+            confirmButton:
+            'btn btn-danger rounded-2 px-4 me-2',
+            cancelButton:
+            'btn btn-outline-muted rounded-2 px-4',
+            },
+            buttonsStyling: false,
+            }).then((result) => {
+            if (result.isConfirmed) {
+            form.submit();
+            }
+            });
+            });
+            });
+            });
+            </script>
+        --}}
 
         @stack("scripts")
         <!-- Untuk halaman yang butuh JS tambahan -->

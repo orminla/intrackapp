@@ -122,94 +122,94 @@
     </div>
 </div>
 
-<!-- Script Filtering Portofolio & Reset Form -->
+<!-- Script Filtering Portofolio, Reset Form & SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const tambahPetugasModal =
+            document.getElementById('tambahPetugasModal');
+        if (!tambahPetugasModal) return;
+
+        const form = tambahPetugasModal.querySelector('form');
         const deptSelect = document.getElementById('departmentSelect');
         const portfolioSelect = document.getElementById('portfolioSelect');
-        const form = document.querySelector('#tambahPetugasModal form');
-        const submitBtn = form.querySelector('button[type="submit"]');
-
         const allOptions = Array.from(portfolioSelect.options).filter(
             (o) => o.value !== '',
         );
 
-        // Fungsi cek validasi semua input required dan select required
-        function checkFormValidity() {
-            // Cari semua elemen input/select yang required dalam form
-            const requiredElements = form.querySelectorAll(
-                'input[required], select[required]',
-            );
-
-            // Cek apakah semua sudah terisi / valid
-            for (const el of requiredElements) {
-                // Untuk input/select harus ada value dan tidak kosong
-                if (!el.value || el.value.trim() === '') {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        // Fungsi untuk update status tombol submit
-        function updateSubmitBtn() {
-            if (checkFormValidity()) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
-            }
-        }
-
+        // Filter portfolio sesuai bidang
         deptSelect.addEventListener('change', function () {
             const selectedDept = this.value;
-
-            // Reset pilihan portofolio
-            portfolioSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Pilih Portofolio';
-            portfolioSelect.appendChild(placeholder);
-
-            // Tampilkan opsi yang sesuai
+            portfolioSelect.innerHTML =
+                '<option value="">Pilih Portofolio</option>';
             allOptions.forEach((option) => {
                 if (option.dataset.dept === selectedDept) {
                     portfolioSelect.appendChild(option);
                 }
             });
-
-            updateSubmitBtn();
         });
 
-        // Pantau perubahan di semua input dan select required
-        const requiredElements = form.querySelectorAll(
-            'input[required], select[required]',
-        );
-        requiredElements.forEach((el) => {
-            el.addEventListener('input', updateSubmitBtn);
-            el.addEventListener('change', updateSubmitBtn);
-        });
-
-        // Reset form saat modal ditutup
-        const tambahPetugasModal =
-            document.getElementById('tambahPetugasModal');
+        // Reset form saat modal tambah ditutup
         tambahPetugasModal.addEventListener('hidden.bs.modal', function () {
             form.reset();
-
-            // Reset ulang portofolio ke semua opsi awal
-            portfolioSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Pilih Portofolio';
-            portfolioSelect.appendChild(placeholder);
-
-            allOptions.forEach((option) => {
-                portfolioSelect.appendChild(option);
-            });
-
-            updateSubmitBtn();
+            portfolioSelect.innerHTML =
+                '<option value="">Pilih Portofolio</option>';
+            allOptions.forEach((option) => portfolioSelect.appendChild(option));
         });
 
-        // Disable tombol submit di awal
-        submitBtn.disabled = true;
+        // Submit AJAX + SweetAlert
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!form.checkValidity()) {
+                form.reportValidity(); // trigger validasi bawaan browser
+                return;
+            }
+
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector(
+                        'meta[name="csrf-token"]',
+                    ).content,
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+                .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok)
+                        throw new Error(data.message || 'Gagal menyimpan data');
+                    return data;
+                })
+                .then((data) => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text:
+                            data.message ||
+                            'Data petugas berhasil ditambahkan.',
+                        timer: 1500,
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        showConfirmButton: false,
+                    });
+                    bootstrap.Modal.getInstance(tambahPetugasModal).hide();
+                    setTimeout(() => location.reload(), 1600);
+                })
+                .catch((error) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text:
+                            error.message ||
+                            'Terjadi kesalahan, silakan coba lagi.',
+                    });
+                });
+        });
     });
 </script>

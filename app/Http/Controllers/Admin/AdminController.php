@@ -59,74 +59,6 @@ class AdminController extends Controller
         ]);
     }
 
-    // public function store(Request $request)
-    // {
-    //     // Hanya admin yang boleh menambahkan admin lain
-    //     $user = Auth::user();
-    //     if ($user->role !== 'admin') {
-    //         $message = 'Hanya admin yang dapat menambahkan admin lain.';
-    //         return $request->expectsJson()
-    //             ? response()->json(['success' => false, 'message' => $message], 403)
-    //             : abort(403, $message);
-    //     }
-
-    //     // Validasi input
-    //     $validated = $request->validate([
-    //         'name'          => 'required|string|max:255',
-    //         'nip'           => 'required|string|max:100|unique:admins,nip',
-    //         'phone_num'     => 'required|string|max:20',
-    //         'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
-    //         'department_id' => 'required|exists:departments,department_id',
-    //         'email'         => 'required|email|unique:users,email',
-    //     ]);
-
-    //     // Format nomor HP
-    //     $phone = $validated['phone_num'];
-    //     if (strpos($phone, '08') === 0) {
-    //         $phone = '62' . substr($phone, 1);
-    //     }
-
-    //     // Password default: nama depan + 123
-    //     $firstName = strtolower(strtok($validated['name'], ' '));
-    //     $defaultPassword = $firstName . '123';
-
-    //     // Buat akun user baru
-    //     $newUser = User::create([
-    //         'email'    => $validated['email'],
-    //         'password' => Hash::make($defaultPassword),
-    //         'role'     => 'admin',
-    //     ]);
-
-    //     // Buat admin dengan user_id
-    //     $admin = Admin::create([
-    //         'users_id'      => $newUser->id,
-    //         'name'          => $validated['name'],
-    //         'phone_num'     => $phone,
-    //         'nip'           => $validated['nip'],
-    //         'portfolio_id'  => $validated['portfolio_id'],
-    //         'department_id' => $validated['department_id'],
-    //     ]);
-
-    //     // Jika request API
-    //     if ($request->expectsJson()) {
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Admin dan akun berhasil dibuat.',
-    //             'data' => [
-    //                 'admin'            => $admin,
-    //                 'akun'             => $newUser,
-    //                 'default_password' => $defaultPassword
-    //             ]
-    //         ], 201);
-    //     }
-
-    //     // Jika request web
-    //     return redirect()->back()->with([
-    //         'success' => 'Admin baru berhasil ditambahkan.',
-    //         'default_password' => $defaultPassword,
-    //     ]);
-    // }
-
     public function store(Request $request)
     {
         // Hanya admin yang boleh menambahkan admin lain
@@ -141,7 +73,14 @@ class AdminController extends Controller
         // Validasi input
         $validated = $request->validate([
             'name'          => 'required|string|max:255',
-            'nip'           => 'required|string|max:100|unique:admins,nip|unique:pending_users,nip',
+            'nip' => [
+                'required',
+                'string',
+                'size:18',
+                'regex:/^\d{18}$/',
+                'unique:inspectors,nip',
+                'unique:pending_users,nip',
+            ],
             'phone_num'     => 'required|string|max:20',
             'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
             'department_id' => 'required|exists:departments,department_id',
