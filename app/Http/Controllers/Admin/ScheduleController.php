@@ -98,6 +98,10 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
+        // Ambil param filter dan showing (default)
+        $filter = $request->get('filter', 'all');
+        $showing = (int) $request->get('showing', 10);
+
         $query = Schedule::with([
             'product:product_id,name',
             'selectedDetails:detail_id,name',
@@ -105,23 +109,32 @@ class ScheduleController extends Controller
             'inspector' => function ($q) {
                 $q->select('inspector_id', 'name', 'portfolio_id')->with('portfolio:portfolio_id,name');
             }
-        ])
-            ->whereIn('status', ['Dalam proses', 'Menunggu konfirmasi']);
+        ]);
 
+        // Filter status jika bukan all
+        if ($filter !== 'all') {
+            $query->where('status', $filter);
+        } else {
+            // Kalau all, batasi hanya status tertentu saja (sesuaikan jika perlu)
+            $query->whereIn('status', ['Dalam proses', 'Menunggu konfirmasi', 'Dijadwalkan ganti', 'Selesai']);
+        }
+
+        // Filter role inspector supaya hanya dapat jadwal dirinya sendiri
         if ($user->role === 'inspector' || $user->role === 'petugas') {
             $inspectorId = optional($user->inspector)->inspector_id;
             if (!$inspectorId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akun Anda tidak terkait dengan data petugas.'
-                ], 403);
+                abort(403, 'Akun Anda tidak terkait dengan data petugas.');
             }
             $query->where('inspector_id', $inspectorId);
         }
 
-        $schedules = $query->get();
+        $query->orderBy('started_date', 'asc');
 
-        $data = $schedules->map(function ($schedule) {
+        // Pagination dengan per halaman $showing
+        $schedules = $query->paginate($showing)->withQueryString();
+
+        // Map data supaya struktur sesuai kebutuhan blade
+        $data = $schedules->getCollection()->transform(function ($schedule) {
             $detailProdukList = $schedule->selectedDetails->pluck('name')->toArray();
 
             return [
@@ -137,24 +150,44 @@ class ScheduleController extends Controller
             ];
         });
 
+        // Ganti collection lama dengan collection baru yang sudah map
+        $schedules->setCollection($data);
+
+        // Ambil data lain jika perlu untuk blade
         $changeRequests = $this->changeReq(null, true);
 
+        $partners = Partner::select('partner_id', 'name', 'address')->get();
+        $portfolios = Portfolio::select('portfolio_id', 'name', 'department_id')->get();
+        $departments = Department::select('department_id', 'name')->get();
+        $produkList = Product::select('name')->distinct()->get();
+
+        // Kalau request AJAX/JSON, langsung kirim json
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'data'    => $data
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $schedules->currentPage(),
+                    'last_page' => $schedules->lastPage(),
+                    'per_page' => $schedules->perPage(),
+                    'total' => $schedules->total(),
+                ],
             ]);
         }
 
+        // Render view dengan data
         return view('admin.inspection_schedule', [
-            'schedules'      => $data,
+            'schedules' => $schedules,
             'changeRequests' => $changeRequests,
-            'partners'       => Partner::select('partner_id', 'name', 'address')->get(),
-            'portfolios'     => Portfolio::select('portfolio_id', 'name', 'department_id')->get(),
-            'departments'    => Department::select('department_id', 'name')->get(),
-            'produkList'     => Product::select('name')->distinct()->get(),
+            'partners' => $partners,
+            'portfolios' => $portfolios,
+            'departments' => $departments,
+            'produkList' => $produkList,
+            'showingSelected' => $showing,
+            'filterSelected' => $filter,
         ]);
     }
+
 
     public function store(Request $request)
     {
@@ -251,14 +284,17 @@ class ScheduleController extends Controller
                 return false;
             }
 
-            $message = "*📢 Penugasan Inspeksi Baru*\n\n"
+            $message = "📢 Penugasan inspeksi baru\n\n"
+                . "Halo *{$inspector->name}*, Anda memiliki inspeksi terbaru yang perlu dilakukan dengan detail sebagai berikut:\n\n"
                 . "*Tanggal* : {$tanggal}\n"
                 . "*Mitra* : {$partner->name}\n"
                 . "*Alamat* : {$partner->address}\n"
                 . "*Produk* : {$product->name}\n"
-                . "*Detail Inspeksi* : " . implode(', ', $detail_produk) . "\n\n"
-                . "_Konfirmasi maks. 1x24 jam setelah penugasan. Tanpa konfirmasi, jadwal akan tetap diproses._\n\n"
-                . "Terima kasih - InTrack App.";
+                . "*Detail* : " . implode(', ', $detail_produk) . "\n\n"
+                . "Mohon segera konfirmasi melalui sistem dalam waktu maksimal 1x24 jam setelah penugasan.\n"
+                . "Jika tidak dikonfirmasi, jadwal akan tetap diproses.\n\n"
+                . "Terima kasih,\n"
+                . "InTrack App.";
 
             $response = Http::withHeaders([
                 'Authorization' => 'uf1VVEf2S7DGDWMfS5Ry',
@@ -437,7 +473,6 @@ class ScheduleController extends Controller
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
     }
 
-    // permintaan ganti petugas
     public function changeReq(Request $request = null, bool $returnOnly = false)
     {
         $changeRequests = InspectorChangeRequest::with([

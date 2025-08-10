@@ -1,4 +1,4 @@
-@push("styles")
+<?php $__env->startPush("styles"); ?>
     <style>
         .add-detail-btn {
             font-size: 0.875rem;
@@ -15,34 +15,34 @@
             overflow-y: auto;
         }
     </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@foreach ($schedules as $index => $schedule)
+<?php $__currentLoopData = $schedules; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $schedule): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
     <div
         class="modal fade"
-        id="detailScheduleModal-{{ $index }}"
+        id="detailScheduleModal-<?php echo e($index); ?>"
         tabindex="-1"
-        aria-labelledby="detailScheduleModalLabel-{{ $index }}"
+        aria-labelledby="detailScheduleModalLabel-<?php echo e($index); ?>"
         aria-hidden="true"
     >
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content rounded-4 p-3 modal-lg-scrollable">
                 <form
                     method="POST"
-                    action="{{ route("admin.jadwal.update", $schedule["id"]) }}"
+                    action="<?php echo e(route("admin.jadwal.update", $schedule["id"])); ?>"
                     class="editable-form"
-                    data-form-index="{{ $index }}"
-                    data-original-detail="{{ json_encode($schedule["detail_produk"]) }}"
+                    data-form-index="<?php echo e($index); ?>"
+                    data-original-detail="<?php echo e(json_encode($schedule["detail_produk"])); ?>"
                 >
-                    @csrf
-                    @method("PUT")
+                    <?php echo csrf_field(); ?>
+                    <?php echo method_field("PUT"); ?>
 
                     <div
                         class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center"
                     >
                         <h4
                             class="modal-title fw-bold"
-                            id="detailScheduleModalLabel-{{ $index }}"
+                            id="detailScheduleModalLabel-<?php echo e($index); ?>"
                         >
                             Detail Jadwal Inspeksi
                         </h4>
@@ -56,7 +56,7 @@
 
                     <div class="modal-body pt-2 mt-2 text-start">
                         <div class="row">
-                            @php
+                            <?php
                                 $fields = [
                                     ["label" => "Mitra", "value" => $schedule["nama_mitra"], "name" => "nama_mitra"],
                                     ["label" => "Tanggal Inspeksi", "value" => $schedule["tanggal_inspeksi"], "name" => "tanggal_inspeksi"],
@@ -65,23 +65,25 @@
                                     ["label" => "Produk", "value" => $schedule["produk"], "name" => "produk"],
                                     ["label" => "Portofolio", "value" => $schedule["portofolio"], "name" => "portofolio"],
                                 ];
-                            @endphp
+                            ?>
 
-                            @foreach ($fields as $f)
+                            <?php $__currentLoopData = $fields; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">
-                                        {{ $f["label"] }}
+                                        <?php echo e($f["label"]); ?>
+
                                     </label>
                                     <input
-                                        type="{{ $f["name"] === "tanggal_inspeksi" ? "date" : "text" }}"
-                                        class="form-control {{ in_array($f["name"], ["nama_petugas", "portofolio"]) ? "text-muted bg-light" : "" }}"
-                                        name="{{ $f["name"] }}"
-                                        value="{{ $f["value"] }}"
-                                        {{ in_array($f["name"], ["nama_petugas", "portofolio"]) ? "readonly" : "readonly required" }}
-                                        id="{{ $f["name"] === "tanggal_inspeksi" ? "tanggalInspeksi-" . $index : "" }}"
+                                        type="<?php echo e($f["name"] === "tanggal_inspeksi" ? "date" : "text"); ?>"
+                                        class="form-control <?php echo e(in_array($f["name"], ["nama_petugas", "portofolio"]) ? "text-muted bg-light" : ""); ?>"
+                                        name="<?php echo e($f["name"]); ?>"
+                                        value="<?php echo e($f["value"]); ?>"
+                                        <?php echo e(in_array($f["name"], ["nama_petugas", "portofolio"]) ? "readonly" : "readonly required"); ?>
+
+                                        id="<?php echo e($f["name"] === "tanggal_inspeksi" ? "tanggalInspeksi-" . $index : ""); ?>"
                                     />
                                 </div>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                             <div class="col-md-12 mt-2">
                                 <div
@@ -93,7 +95,7 @@
                                     <button
                                         type="button"
                                         class="btn btn-outline-primary d-flex align-items-center gap-2 add-detail-btn d-none"
-                                        data-form-index="{{ $index }}"
+                                        data-form-index="<?php echo e($index); ?>"
                                     >
                                         <i class="ti ti-plus"></i>
                                         Tambah Detail
@@ -101,7 +103,7 @@
                                 </div>
 
                                 <div class="detail-produk-wrapper">
-                                    @forelse ($schedule["detail_produk"] as $detail)
+                                    <?php $__empty_1 = true; $__currentLoopData = $schedule["detail_produk"]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                         <div
                                             class="input-group mb-2 detail-produk-group"
                                         >
@@ -109,7 +111,7 @@
                                                 type="text"
                                                 class="form-control"
                                                 name="detail_produk[]"
-                                                value="{{ $detail }}"
+                                                value="<?php echo e($detail); ?>"
                                                 required
                                                 readonly
                                             />
@@ -121,7 +123,7 @@
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
-                                    @empty
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                         <div
                                             class="input-group mb-2 detail-produk-group"
                                         >
@@ -132,7 +134,7 @@
                                                 disabled
                                             />
                                         </div>
-                                    @endforelse
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -142,14 +144,14 @@
                         <button
                             type="button"
                             class="btn btn-primary w-100 toggle-edit-btn"
-                            data-form-index="{{ $index }}"
+                            data-form-index="<?php echo e($index); ?>"
                         >
                             Edit Jadwal
                         </button>
                         <button
                             type="submit"
                             class="btn btn-success w-100 d-none save-btn mt-2"
-                            data-form-index="{{ $index }}"
+                            data-form-index="<?php echo e($index); ?>"
                             disabled
                         >
                             Simpan
@@ -159,9 +161,9 @@
             </div>
         </div>
     </div>
-@endforeach
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-@push("scripts")
+<?php $__env->startPush("scripts"); ?>
     <script>
         // Toggle edit mode
         document.querySelectorAll('.toggle-edit-btn').forEach((btn) => {
@@ -537,4 +539,5 @@
             });
         });
     </script>
-@endpush
+<?php $__env->stopPush(); ?>
+<?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/detail_schedule_modal.blade.php ENDPATH**/ ?>

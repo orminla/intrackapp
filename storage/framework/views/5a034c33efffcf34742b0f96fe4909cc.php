@@ -1,8 +1,8 @@
-@extends("admin.layouts.app")
 
-@section("title", "Jadwal Inspeksi")
 
-@section("content")
+<?php $__env->startSection("title", "Jadwal Inspeksi"); ?>
+
+<?php $__env->startSection("content"); ?>
     <div class="row d-flex align-items-stretch">
         <!-- Jadwal Inspeksi -->
         <div class="col-12 mb-2">
@@ -44,19 +44,22 @@
                                     >
                                         <option
                                             value="10"
-                                            {{ $showingSelected == 10 ? "selected" : "" }}
+                                            <?php echo e($showingSelected == 10 ? "selected" : ""); ?>
+
                                         >
                                             10
                                         </option>
                                         <option
                                             value="25"
-                                            {{ $showingSelected == 25 ? "selected" : "" }}
+                                            <?php echo e($showingSelected == 25 ? "selected" : ""); ?>
+
                                         >
                                             25
                                         </option>
                                         <option
                                             value="50"
-                                            {{ $showingSelected == 50 ? "selected" : "" }}
+                                            <?php echo e($showingSelected == 50 ? "selected" : ""); ?>
+
                                         >
                                             50
                                         </option>
@@ -84,25 +87,29 @@
                                     >
                                         <option
                                             value="all"
-                                            {{ $filterSelected == "all" ? "selected" : "" }}
+                                            <?php echo e($filterSelected == "all" ? "selected" : ""); ?>
+
                                         >
                                             Semua
                                         </option>
                                         <option
                                             value="Menunggu konfirmasi"
-                                            {{ $filterSelected == "Menunggu konfirmasi" ? "selected" : "" }}
+                                            <?php echo e($filterSelected == "Menunggu konfirmasi" ? "selected" : ""); ?>
+
                                         >
                                             Menunggu
                                         </option>
                                         <option
                                             value="Dijadwalkan ganti"
-                                            {{ $filterSelected == "Dijadwalkan ganti" ? "selected" : "" }}
+                                            <?php echo e($filterSelected == "Dijadwalkan ganti" ? "selected" : ""); ?>
+
                                         >
                                             Dijadwalkan ganti
                                         </option>
                                         <option
                                             value="Dalam proses"
-                                            {{ $filterSelected == "Dalam proses" ? "selected" : "" }}
+                                            <?php echo e($filterSelected == "Dalam proses" ? "selected" : ""); ?>
+
                                         >
                                             Diproses
                                         </option>
@@ -142,52 +149,59 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($schedules as $index => $schedule)
+                                <?php $__empty_1 = true; $__currentLoopData = $schedules; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $schedule): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                     <tr>
                                         <td class="text-center">
-                                            {{ ($schedules->currentPage() - 1) * $schedules->perPage() + $index + 1 }}
+                                            <?php echo e(($schedules->currentPage() - 1) * $schedules->perPage() + $index + 1); ?>
+
                                         </td>
                                         <td class="text-center">
-                                            {{ $schedule["tanggal_inspeksi"] }}
+                                            <?php echo e($schedule["tanggal_inspeksi"]); ?>
+
                                         </td>
                                         <td class="text-center">
-                                            {{ $schedule["nama_mitra"] }}
+                                            <?php echo e($schedule["nama_mitra"]); ?>
+
                                         </td>
                                         <td class="text-center">
-                                            @php
+                                            <?php
                                                 $parts = explode(",", $schedule["lokasi"]);
                                                 $first = trim($parts[0] ?? "-");
                                                 $last = trim(end($parts) ?? "-");
-                                            @endphp
+                                            ?>
 
-                                            {{ $first }}, {{ $last }}
+                                            <?php echo e($first); ?>, <?php echo e($last); ?>
+
                                         </td>
                                         <td class="text-center fw-bolder">
-                                            {{ $schedule["nama_petugas"] }}
+                                            <?php echo e($schedule["nama_petugas"]); ?>
+
                                         </td>
                                         <td class="text-center">
-                                            {{ $schedule["produk"] }}
+                                            <?php echo e($schedule["produk"]); ?>
+
                                         </td>
                                         <td class="text-center">
                                             <span
-                                                class="badge @switch($schedule['status'])
-                            @case('Menunggu konfirmasi') bg-secondary-subtle text-secondary @break
-                            @case('Dijadwalkan ganti') bg-orange-subtle text-orange @break
-                            @case('Dalam proses') bg-warning-subtle text-warning @break
-                            @default bg-light text-dark
-                        @endswitch py-2 px-3 rounded-2"
+                                                class="badge <?php switch($schedule['status']):
+                            case ('Menunggu konfirmasi'): ?> bg-secondary-subtle text-secondary <?php break; ?>
+                            <?php case ('Dijadwalkan ganti'): ?> bg-orange-subtle text-orange <?php break; ?>
+                            <?php case ('Dalam proses'): ?> bg-warning-subtle text-warning <?php break; ?>
+                            <?php default: ?> bg-light text-dark
+                        <?php endswitch; ?> py-2 px-3 rounded-2"
                                             >
-                                                {{ $schedule["status"] }}
+                                                <?php echo e($schedule["status"]); ?>
+
                                             </span>
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            @if ($schedule["status"] === "Menunggu konfirmasi")
+                                            <?php if($schedule["status"] === "Menunggu konfirmasi"): ?>
                                                 <button
                                                     class="btn btn-sm px-1 border-0 bg-transparent"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#detailScheduleModal-{{ $index }}"
+                                                    data-bs-target="#detailScheduleModal-<?php echo e($index); ?>"
                                                 >
                                                     <i
                                                         class="ti ti-edit fs-5 text-warning"
@@ -195,15 +209,15 @@
                                                         data-bs-title="Lihat & Ubah"
                                                     ></i>
                                                 </button>
-                                            @endif
+                                            <?php endif; ?>
 
                                             <form
                                                 method="POST"
-                                                action="{{ route("admin.jadwal.destroy", $schedule["id"]) }}"
+                                                action="<?php echo e(route("admin.jadwal.destroy", $schedule["id"])); ?>"
                                                 class="d-inline delete-form"
                                             >
-                                                @csrf
-                                                @method("DELETE")
+                                                <?php echo csrf_field(); ?>
+                                                <?php echo method_field("DELETE"); ?>
                                                 <button
                                                     type="button"
                                                     class="btn btn-sm px-1 border-0 bg-transparent delete-button"
@@ -217,19 +231,38 @@
                                             </form>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="8" class="text-center">
                                             Tidak ada jadwal inspeksi.
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
 
                     <!-- Pagination -->
-                    <x-table-pagination :data="$schedules" />
+                    <?php if (isset($component)) { $__componentOriginal2db78c7485c7f31546e3ba142cc29213 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal2db78c7485c7f31546e3ba142cc29213 = $attributes; } ?>
+<?php $component = App\View\Components\TablePagination::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('table-pagination'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\App\View\Components\TablePagination::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['data' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($schedules)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal2db78c7485c7f31546e3ba142cc29213)): ?>
+<?php $attributes = $__attributesOriginal2db78c7485c7f31546e3ba142cc29213; ?>
+<?php unset($__attributesOriginal2db78c7485c7f31546e3ba142cc29213); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal2db78c7485c7f31546e3ba142cc29213)): ?>
+<?php $component = $__componentOriginal2db78c7485c7f31546e3ba142cc29213; ?>
+<?php unset($__componentOriginal2db78c7485c7f31546e3ba142cc29213); ?>
+<?php endif; ?>
                 </div>
             </div>
         </div>
@@ -289,48 +322,54 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($changeRequests as $i => $req)
+                                <?php $__empty_1 = true; $__currentLoopData = $changeRequests; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $req): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                     <tr>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $i + 1 }}
+                                            <?php echo e($i + 1); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $req["tanggal_pengajuan"] ?? "-" }}
+                                            <?php echo e($req["tanggal_pengajuan"] ?? "-"); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $req["mitra"] ?? "-" }}
+                                            <?php echo e($req["mitra"] ?? "-"); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $req["petugas"] ?? "-" }}
+                                            <?php echo e($req["petugas"] ?? "-"); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $req["petugas_baru"] ?? "-" }}
+                                            <?php echo e($req["petugas_baru"] ?? "-"); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            @php
+                                            <?php
                                                 $badgeColor = match (strtolower($req["status"] ?? "")) {
                                                     "disetujui" => "bg-success-subtle text-success",
                                                     "ditolak" => "bg-danger-subtle text-danger",
                                                     default => "bg-secondary-subtle text-secondary",
                                                 };
-                                            @endphp
+                                            ?>
 
                                             <span
-                                                class="badge {{ $badgeColor }} py-2 px-3 rounded-2"
+                                                class="badge <?php echo e($badgeColor); ?> py-2 px-3 rounded-2"
                                             >
-                                                {{ ucfirst($req["status"]) }}
+                                                <?php echo e(ucfirst($req["status"])); ?>
+
                                             </span>
                                         </td>
                                         <td
@@ -340,7 +379,7 @@
                                             <button
                                                 class="btn btn-sm px-1 border-0 bg-transparent"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#changeInspectorModal-{{ $i }}"
+                                                data-bs-target="#changeInspectorModal-<?php echo e($i); ?>"
                                                 title="Lihat"
                                             >
                                                 <i
@@ -351,7 +390,7 @@
                                             </button>
 
                                             <!-- Validasi -->
-                                            @php
+                                            <?php
                                                 $status = strtolower($req["status"]);
                                                 $validasiOpsi = [];
 
@@ -361,9 +400,9 @@
                                                         ["label" => "Ditolak", "icon" => "ti ti-x", "color" => "text-danger"],
                                                     ];
                                                 }
-                                            @endphp
+                                            ?>
 
-                                            @if (count($validasiOpsi))
+                                            <?php if(count($validasiOpsi)): ?>
                                                 <div class="btn-group">
                                                     <button
                                                         type="button"
@@ -379,44 +418,45 @@
                                                     <ul
                                                         class="dropdown-menu dropdown-menu-end shadow rounded-3"
                                                     >
-                                                        @foreach ($validasiOpsi as $opt)
+                                                        <?php $__currentLoopData = $validasiOpsi; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                                             <li>
                                                                 <form
                                                                     method="POST"
-                                                                    action="{{ route("admin.jadwal.validasi", $req["id"]) }}"
+                                                                    action="<?php echo e(route("admin.jadwal.validasi", $req["id"])); ?>"
                                                                     class="d-inline-block w-100"
                                                                 >
-                                                                    @csrf
-                                                                    @method("PUT")
+                                                                    <?php echo csrf_field(); ?>
+                                                                    <?php echo method_field("PUT"); ?>
                                                                     <input
                                                                         type="hidden"
                                                                         name="status"
-                                                                        value="{{ $opt["label"] }}"
+                                                                        value="<?php echo e($opt["label"]); ?>"
                                                                     />
                                                                     <button
                                                                         type="submit"
-                                                                        class="dropdown-item d-flex align-items-center gap-2 {{ $opt["color"] }}"
+                                                                        class="dropdown-item d-flex align-items-center gap-2 <?php echo e($opt["color"]); ?>"
                                                                     >
                                                                         <i
-                                                                            class="{{ $opt["icon"] }}"
+                                                                            class="<?php echo e($opt["icon"]); ?>"
                                                                         ></i>
-                                                                        {{ $opt["label"] }}
+                                                                        <?php echo e($opt["label"]); ?>
+
                                                                     </button>
                                                                 </form>
                                                             </li>
-                                                        @endforeach
+                                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                                     </ul>
                                                 </div>
-                                            @endif
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="7" class="text-center">
                                             Tidak ada permintaan ganti petugas.
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -425,13 +465,13 @@
         </div>
     </div>
 
-    {{-- Modals --}}
-    @include("admin.add_schedule_modal")
-    @include("admin.detail_schedule_modal")
-    {{-- @include("admin.edit_changeinsp_modal", ["requestChange" => $req, "i" => $i]) --}}
-@endsection
+    
+    <?php echo $__env->make("admin.add_schedule_modal", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php echo $__env->make("admin.detail_schedule_modal", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    
+<?php $__env->stopSection(); ?>
 
-@push("scripts")
+<?php $__env->startPush("scripts"); ?>
     <script>
         document
             .getElementById('showing')
@@ -511,11 +551,11 @@
                 });
             });
 
-            @if(session('success') || session('error') || session('warning'))
+            <?php if(session('success') || session('error') || session('warning')): ?>
                 Swal.fire({
-                    icon: '{{ session("success") ? "success" : (session("error") ? "error" : "warning") }}',
-                    title: '{{ session("success") ? "Berhasil!" : (session("error") ? "Gagal!" : "Perhatian!") }}',
-                    text: "{{ session('success') ?? session('error') ?? session('warning') }}",
+                    icon: '<?php echo e(session("success") ? "success" : (session("error") ? "error" : "warning")); ?>',
+                    title: '<?php echo e(session("success") ? "Berhasil!" : (session("error") ? "Gagal!" : "Perhatian!")); ?>',
+                    text: "<?php echo e(session('success') ?? session('error') ?? session('warning')); ?>",
                     timer: 1500,
                     showConfirmButton: false,
                     customClass: {
@@ -524,13 +564,13 @@
                     },
                     buttonsStyling: false,
                 });
-            @endif
+            <?php endif; ?>
 
-            @if ($errors->any())
+            <?php if($errors->any()): ?>
                 Swal.fire({
                     icon: 'error',
                     title: 'Gagal!',
-                    html: '{!! implode("<br>", $errors->all()) !!}',
+                    html: '<?php echo implode("<br>", $errors->all()); ?>',
                     timer: 1500,
                     customClass: {
                         popup: 'rounded-4',
@@ -538,7 +578,9 @@
                     },
                     buttonsStyling: false,
                 });
-            @endif
+            <?php endif; ?>
         });
     </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make("admin.layouts.app", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/inspection_schedule.blade.php ENDPATH**/ ?>

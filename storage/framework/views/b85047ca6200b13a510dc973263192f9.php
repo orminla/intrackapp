@@ -42,9 +42,9 @@
             <form
                 id="formTambahJadwal"
                 method="POST"
-                action="{{ route("admin.jadwal.store") }}"
+                action="<?php echo e(route("admin.jadwal.store")); ?>"
             >
-                @csrf
+                <?php echo csrf_field(); ?>
                 <div class="modal-body modal-body-custom">
                     <div class="row g-3">
                         <!-- Mitra -->
@@ -59,12 +59,12 @@
                                 required
                             />
                             <datalist id="partnerList">
-                                @foreach ($partners as $partner)
+                                <?php $__currentLoopData = $partners; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $partner): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $partner->name }}"
-                                        data-address="{{ $partner->address }}"
+                                        value="<?php echo e($partner->name); ?>"
+                                        data-address="<?php echo e($partner->address); ?>"
                                     ></option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </datalist>
                         </div>
 
@@ -103,11 +103,12 @@
                                 required
                             >
                                 <option value="">Pilih Portofolio</option>
-                                @foreach ($portfolios as $port)
-                                    <option value="{{ $port->portfolio_id }}">
-                                        {{ $port->name }}
+                                <?php $__currentLoopData = $portfolios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $port): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($port->portfolio_id); ?>">
+                                        <?php echo e($port->name); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
@@ -409,3 +410,4 @@
         });
     });
 </script>
+<?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/add_schedule_modal.blade.php ENDPATH**/ ?>
