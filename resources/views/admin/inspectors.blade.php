@@ -56,47 +56,6 @@
                                     </option>
                                 </select>
                             </div>
-                            {{--
-                                <!-- Filter -->
-                                <div class="d-flex align-items-center gap-2">
-                                <span class="fw-normal text-muted">Filter</span>
-                                <select
-                                id="filter"
-                                class="form-select form-select-sm border-0 bg-light"
-                                style="
-                                width: auto;
-                                min-width: 100px;
-                                height: 36px;
-                                font-size: 0.875rem;
-                                "
-                                >
-                                <option
-                                value="all"
-                                {{ $filterSelected == "all" ? "selected" : "" }}
-                                >
-                                Semua
-                                </option>
-                                <option
-                                value="selesai"
-                                {{ $filterSelected == "selesai" ? "selected" : "" }}
-                                >
-                                Selesai
-                                </option>
-                                <option
-                                value="diproses"
-                                {{ $filterSelected == "diproses" ? "selected" : "" }}
-                                >
-                                Diproses
-                                </option>
-                                <option
-                                value="menunggu konfirmasi"
-                                {{ $filterSelected == "menunggu konfirmasi" ? "selected" : "" }}
-                                >
-                                Menunggu
-                                </option>
-                                </select>
-                                </div>
-                            --}}
 
                             <!-- Import Excel -->
                             <button

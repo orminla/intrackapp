@@ -55,4 +55,9 @@ class Schedule extends Model
     {
         return $this->belongsToMany(DetailProduct::class, 'schedule_details', 'schedule_id', 'detail_id');
     }
+
+    public function changeRequests()
+    {
+        return $this->hasMany(InspectorChangeRequest::class, 'schedule_id', 'schedule_id');
+    }
 }

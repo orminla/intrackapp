@@ -17,11 +17,10 @@
                         <div
                             class="d-flex align-items-center gap-3 ms-md-auto mt-3 mt-md-0 flex-wrap"
                         >
-                            <!-- Filter & Showing -->
                             <form
                                 id="filterForm"
                                 method="GET"
-                                class="d-flex align-items-center gap-3 mb-3"
+                                class="d-flex align-items-center gap-3 mb-0"
                             >
                                 <div class="d-flex align-items-center gap-2">
                                     <label
@@ -76,7 +75,7 @@
                                         class="form-select form-select-sm border-0 bg-light"
                                         style="
                                             width: auto;
-                                            min-width: 100px;
+                                            max-width: 120px;
                                             height: 36px;
                                             font-size: 0.875rem;
                                         "
@@ -110,17 +109,15 @@
                                 </div>
                             </form>
 
-                            <!-- Tambah -->
-                            <div>
-                                <button
-                                    class="btn btn-primary d-flex align-items-center gap-2"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#tambahJadwalModal"
-                                >
-                                    <i class="ti ti-plus"></i>
-                                    Tambah Jadwal
-                                </button>
-                            </div>
+                            <button
+                                class="btn btn-primary d-flex align-items-center gap-2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#tambahJadwalModal"
+                                style="height: 36px; font-size: 0.875rem"
+                            >
+                                <i class="ti ti-plus"></i>
+                                Tambah Jadwal
+                            </button>
                         </div>
                     </div>
 
@@ -134,9 +131,11 @@
                                     <th class="text-center fw-bold">No</th>
                                     <th class="text-center fw-bold">Tanggal</th>
                                     <th class="text-center fw-bold">Mitra</th>
-                                    <th class="text-center fw-bold">Lokasi</th>
                                     <th class="text-center fw-bold">Petugas</th>
-                                    <th class="text-center fw-bold">Produk</th>
+                                    <th class="text-center fw-bold">
+                                        Portofolio
+                                    </th>
+                                    <th class="text-center fw-bold">Lokasi</th>
                                     <th class="text-center fw-bold">Status</th>
                                     <th class="text-center fw-bold">Aksi</th>
                                 </tr>
@@ -153,21 +152,21 @@
                                         <td class="text-center">
                                             {{ $schedule["nama_mitra"] }}
                                         </td>
-                                        <td class="text-center">
-                                            @php
-                                                $parts = explode(",", $schedule["lokasi"]);
-                                                $first = trim($parts[0] ?? "-");
-                                                $last = trim(end($parts) ?? "-");
-                                            @endphp
-
-                                            {{ $first }}, {{ $last }}
-                                        </td>
                                         <td class="text-center fw-bolder">
                                             {{ $schedule["nama_petugas"] }}
                                         </td>
                                         <td class="text-center">
-                                            {{ $schedule["produk"] }}
+                                            {{ explode("-", $schedule["portofolio"])[0] ?? $schedule["portofolio"] }}
                                         </td>
+                                        <td class="text-center">
+                                            @php
+                                                $parts = explode(",", $schedule["lokasi"] ?? "");
+                                                $last = trim(end($parts));
+                                            @endphp
+
+                                            {{ $last ?: "-" }}
+                                        </td>
+
                                         <td class="text-center">
                                             <span
                                                 class="badge @switch($schedule['status'])
@@ -242,37 +241,106 @@
                         <div>
                             <h4>Permintaan Ganti Petugas</h4>
                         </div>
+
+                        <!-- Showing & Filter -->
                         <div
                             class="d-flex align-items-center gap-3 ms-md-auto mt-3 mt-md-0 flex-wrap"
                         >
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="fw-normal text-muted">
-                                    Showing
-                                </span>
-                                <select
-                                    class="form-select form-select-sm border-0 bg-light"
-                                    style="min-width: 70px; height: 36px"
-                                >
-                                    <option value="10">10</option>
-                                    <option value="25">25</option>
-                                    <option value="50">50</option>
-                                </select>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="fw-normal text-muted">Filter</span>
-                                <select
-                                    class="form-select form-select-sm border-0 bg-light"
-                                    style="min-width: 100px; height: 36px"
-                                >
-                                    <option value="all">Semua</option>
-                                    <option value="selesai">Selesai</option>
-                                    <option value="diproses">Diproses</option>
-                                    <option value="menunggu">Menunggu</option>
-                                </select>
-                            </div>
+                            <form
+                                id="filterChangeForm"
+                                method="GET"
+                                class="d-flex align-items-center gap-3 mb-0"
+                            >
+                                <div class="d-flex align-items-center gap-2">
+                                    <label
+                                        for="showing_change"
+                                        class="fw-normal text-muted mb-0"
+                                    >
+                                        Showing
+                                    </label>
+                                    <select
+                                        name="showing_change"
+                                        id="showing_change"
+                                        class="form-select form-select-sm border-0 bg-light"
+                                        style="
+                                            width: auto;
+                                            min-width: 70px;
+                                            height: 36px;
+                                            font-size: 0.875rem;
+                                        "
+                                        onchange="document.getElementById('filterChangeForm').submit()"
+                                    >
+                                        <option
+                                            value="10"
+                                            {{ ($showingChangeSelected ?? 10) == 10 ? "selected" : "" }}
+                                        >
+                                            10
+                                        </option>
+                                        <option
+                                            value="25"
+                                            {{ ($showingChangeSelected ?? 10) == 25 ? "selected" : "" }}
+                                        >
+                                            25
+                                        </option>
+                                        <option
+                                            value="50"
+                                            {{ ($showingChangeSelected ?? 10) == 50 ? "selected" : "" }}
+                                        >
+                                            50
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <label
+                                        for="filter_change"
+                                        class="fw-normal text-muted mb-0"
+                                    >
+                                        Filter
+                                    </label>
+                                    <select
+                                        name="filter_change"
+                                        id="filter_change"
+                                        class="form-select form-select-sm border-0 bg-light"
+                                        style="
+                                            width: auto;
+                                            max-width: 160px;
+                                            height: 36px;
+                                            font-size: 0.875rem;
+                                        "
+                                        onchange="document.getElementById('filterChangeForm').submit()"
+                                    >
+                                        <option
+                                            value="all"
+                                            {{ ($filterChangeSelected ?? "all") == "all" ? "selected" : "" }}
+                                        >
+                                            Semua
+                                        </option>
+                                        <option
+                                            value="Menunggu Konfirmasi"
+                                            {{ ($filterChangeSelected ?? "") == "Menunggu Konfirmasi" ? "selected" : "" }}
+                                        >
+                                            Menunggu Konfirmasi
+                                        </option>
+                                        <option
+                                            value="Disetujui"
+                                            {{ ($filterChangeSelected ?? "") == "Disetujui" ? "selected" : "" }}
+                                        >
+                                            Disetujui
+                                        </option>
+                                        <option
+                                            value="Ditolak"
+                                            {{ ($filterChangeSelected ?? "") == "Ditolak" ? "selected" : "" }}
+                                        >
+                                            Ditolak
+                                        </option>
+                                    </select>
+                                </div>
+                            </form>
                         </div>
                     </div>
 
+                    <!-- Tabel Permintaan -->
                     <div class="table-responsive mt-4">
                         <table
                             class="table mb-0 text-nowrap varient-table align-middle fs-3"
@@ -282,7 +350,7 @@
                                     <th class="text-center">No</th>
                                     <th class="text-center">Tanggal</th>
                                     <th class="text-center">Mitra</th>
-                                    <th class="text-center">Petugas</th>
+                                    <th class="text-center">Petugas Lama</th>
                                     <th class="text-center">Petugas Baru</th>
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Aksi</th>
@@ -291,36 +359,24 @@
                             <tbody>
                                 @forelse ($changeRequests as $i => $req)
                                     <tr>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
-                                            {{ $i + 1 }}
+                                        <td class="text-center">
+                                            {{ ($changeRequests->currentPage() - 1) * $changeRequests->perPage() + $i + 1 }}
                                         </td>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
-                                            {{ $req["tanggal_pengajuan"] ?? "-" }}
+                                        <td class="text-center">
+                                            {{ $req->tanggal_pengajuan ?? "-" }}
                                         </td>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
-                                            {{ $req["mitra"] ?? "-" }}
+                                        <td class="text-center">
+                                            {{ $req->mitra ?? "-" }}
                                         </td>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
-                                            {{ $req["petugas"] ?? "-" }}
+                                        <td class="text-center">
+                                            {{ $req->petugas ?? "-" }}
                                         </td>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
-                                            {{ $req["petugas_baru"] ?? "-" }}
+                                        <td class="text-center">
+                                            {{ $req->petugas_baru ?? "-" }}
                                         </td>
-                                        <td
-                                            class="px-0 text-center align-middle"
-                                        >
+                                        <td class="text-center">
                                             @php
-                                                $badgeColor = match (strtolower($req["status"] ?? "")) {
+                                                $badgeColor = match (strtolower($req->status ?? "")) {
                                                     "disetujui" => "bg-success-subtle text-success",
                                                     "ditolak" => "bg-danger-subtle text-danger",
                                                     default => "bg-secondary-subtle text-secondary",
@@ -330,7 +386,7 @@
                                             <span
                                                 class="badge {{ $badgeColor }} py-2 px-3 rounded-2"
                                             >
-                                                {{ ucfirst($req["status"]) }}
+                                                {{ ucfirst($req->status) }}
                                             </span>
                                         </td>
                                         <td
@@ -340,17 +396,34 @@
                                             <button
                                                 class="btn btn-sm px-1 border-0 bg-transparent"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#changeInspectorModal-{{ $i }}"
+                                                data-bs-target="#viewChangeInspectorModal-{{ $i }}"
                                                 title="Lihat"
                                             >
                                                 <i
-                                                    class="ti ti-edit fs-5 text-warning"
+                                                    class="ti ti-eye fs-5 text-primary"
                                                     data-bs-toggle="tooltip"
-                                                    data-bs-title="Lihat & Ubah"
+                                                    data-bs-title="Lihat"
                                                 ></i>
                                             </button>
 
-                                            <!-- Validasi -->
+                                            @if ($req->status === "Menunggu Konfirmasi")
+                                                <!-- Reload -->
+                                                <button
+                                                    class="btn btn-sm px-1 border-0 bg-transparent btn-reload-inspector"
+                                                    type="button"
+                                                    title="Reload Petugas Baru"
+                                                    data-id="{{ $req["id"] }}"
+                                                    data-portfolio-id="{{ $req->schedule->inspector->portfolio_id ?? "" }}"
+                                                    data-started-date="{{ $req["tanggal_pengajuan"] ?? ($req["requested_date"] ?? "") }}"
+                                                    data-reload-count="0"
+                                                >
+                                                    <i
+                                                        class="ti ti-refresh fs-5 text-warning"
+                                                    ></i>
+                                                </button>
+                                            @endif
+
+                                            <!-- Validasi opsi (disetujui/ditolak) untuk status 'menunggu konfirmasi' -->
                                             @php
                                                 $status = strtolower($req["status"]);
                                                 $validasiOpsi = [];
@@ -393,6 +466,12 @@
                                                                         name="status"
                                                                         value="{{ $opt["label"] }}"
                                                                     />
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name="reloaded_inspector_id"
+                                                                        value=""
+                                                                        class="reload-id-input"
+                                                                    />
                                                                     <button
                                                                         type="submit"
                                                                         class="dropdown-item d-flex align-items-center gap-2 {{ $opt["color"] }}"
@@ -420,6 +499,9 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination -->
+                    <x-table-pagination :data="$changeRequests" />
                 </div>
             </div>
         </div>
@@ -428,24 +510,147 @@
     {{-- Modals --}}
     @include("admin.add_schedule_modal")
     @include("admin.detail_schedule_modal")
-    {{-- @include("admin.edit_changeinsp_modal", ["requestChange" => $req, "i" => $i]) --}}
+    @include("admin.detail_changeinsp_modal")
 @endsection
 
 @push("scripts")
     <script>
-        document
-            .getElementById('showing')
-            .addEventListener('change', function () {
-                document.getElementById('filterForm').submit();
-            });
-        document
-            .getElementById('filter')
-            .addEventListener('change', function () {
-                document.getElementById('filterForm').submit();
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tombol reload petugas di tabel
+            document.querySelectorAll('.btn-reload-inspector').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    let reloadCount = parseInt(this.dataset.reloadCount || '0');
+
+                    if (reloadCount >= 2) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Batas reload tercapai',
+                            text: 'Maksimal reload petugas 2 kali sebelum menyimpan.',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-warning rounded-2 px-4',
+                            },
+                            buttonsStyling: false,
+                        });
+                        return;
+                    }
+
+                    const id = this.dataset.id;
+                    const portfolioId = this.dataset.portfolioId;
+                    const startedDate = this.dataset.startedDate;
+
+                    // Disable tombol dan tampilkan loading spinner
+                    this.disabled = true;
+                    const icon = this.querySelector('i');
+                    if (icon) {
+                        icon.classList.add('spinner-border', 'spinner-border-sm');
+                        icon.classList.remove('ti-refresh');
+                    }
+
+                    fetch(`/admin/get-inspector?portfolio_id=${portfolioId}&started_date=${startedDate}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.inspector_id && data.name) {
+                                const row = btn.closest('tr');
+                                const petugasBaruCell = row.querySelectorAll('td')[4]; // kolom Petugas Baru (indeks 4)
+                                const currentName = petugasBaruCell.textContent.trim();
+
+                                if (currentName === data.name) {
+                                    Swal.fire({
+                                        icon: 'info',
+                                        title: 'Petugas sama',
+                                        html: `Petugas pengganti adalah <strong>${data.name}</strong> yang sudah ada di tabel.`,
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton: 'btn btn-info rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    });
+                                } else {
+                                    const availabilityNote = data.note || 'Info ketersediaan tidak tersedia.';
+
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Petugas pengganti tersedia',
+                                        html: `<p>Ganti petugas dengan <strong>${data.name}</strong>?</p>`,
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Ya, ganti',
+                                        cancelButtonText: 'Batal',
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton: 'btn btn-success rounded-2 px-4 me-2',
+                                            cancelButton: 'btn btn-outline-muted rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            petugasBaruCell.textContent = data.name;
+                                            petugasBaruCell.title = availabilityNote;
+
+                                            // Simpan ID petugas baru ke tombol reload
+                                            btn.dataset.newInspectorId = data.inspector_id;
+
+                                            // Update reload count
+                                            reloadCount++;
+                                            btn.dataset.reloadCount = reloadCount;
+                                        }
+                                    });
+                                }
+                            } else {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Petugas tidak ditemukan',
+                                    text: 'Petugas yang tersedia tidak ditemukan.',
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                        confirmButton: 'btn btn-warning rounded-2 px-4',
+                                    },
+                                    buttonsStyling: false,
+                                });
+                            }
+                        })
+                        .catch(() => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: 'Terjadi kesalahan saat mengambil data petugas.',
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton: 'btn btn-danger rounded-2 px-4',
+                                },
+                                buttonsStyling: false,
+                            });
+                        })
+                        .finally(() => {
+                            // Enable tombol dan kembalikan icon
+                            this.disabled = false;
+                            if (icon) {
+                                icon.classList.remove('spinner-border', 'spinner-border-sm');
+                                icon.classList.add('ti-refresh');
+                            }
+                        });
+                });
             });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            // Konfirmasi sebelum hapus dengan SweetAlert2 dan AJAX
+            // Saat submit validasi, sertakan ID petugas hasil reload
+            document.querySelectorAll('form[action*="validasi"]').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const row = this.closest('tr');
+                    const reloadBtn = row.querySelector('.btn-reload-inspector');
+                    const reloadIdInput = this.querySelector('.reload-id-input');
+
+                    if (reloadBtn) {
+                        if (reloadIdInput && reloadBtn.dataset.newInspectorId) {
+                            reloadIdInput.value = reloadBtn.dataset.newInspectorId;
+                        }
+                        // Reset data reload agar setelah validasi kembali nol
+                        reloadBtn.dataset.reloadCount = 0;
+                        reloadBtn.dataset.newInspectorId = '';
+                    }
+                });
+            });
+
+            // Konfirmasi hapus dengan SweetAlert2
             document.querySelectorAll('.delete-button').forEach((btn) => {
                 btn.addEventListener('click', function () {
                     const form = btn.closest('form');
@@ -511,12 +716,36 @@
                 });
             });
 
+            // Auto submit filter
+            document.getElementById('showing')?.addEventListener('change', function () {
+                document.getElementById('filterForm').submit();
+            });
+            document.getElementById('filter')?.addEventListener('change', function () {
+                document.getElementById('filterForm').submit();
+            });
+
+            // SweetAlert for flash messages
             @if(session('success') || session('error') || session('warning'))
                 Swal.fire({
                     icon: '{{ session("success") ? "success" : (session("error") ? "error" : "warning") }}',
                     title: '{{ session("success") ? "Berhasil!" : (session("error") ? "Gagal!" : "Perhatian!") }}',
                     text: "{{ session('success') ?? session('error') ?? session('warning') }}",
                     timer: 1500,
+                    showConfirmButton: false,
+                    customClass: {
+                        popup: 'rounded-4',
+                        confirmButton: 'btn btn-primary rounded-2 px-4',
+                    },
+                    buttonsStyling: false,
+                });
+            @endif
+
+            @if(session('inspector_changed'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: "{{ session('inspector_changed') }}",
+                    timer: 1800,
                     showConfirmButton: false,
                     customClass: {
                         popup: 'rounded-4',

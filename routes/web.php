@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/get-inspector', [ScheduleController::class, 'getAutoInspector'])->name('get-inspector');
         Route::post('/change-request/update', [ScheduleController::class, 'updateChangeInspector'])->name('change_request.update');
+        Route::post('/update-inspector', [ScheduleController::class, 'updateInspector'])->name('updateInspector');
 
         Route::resource('jadwal', ScheduleController::class);
         Route::put('/jadwal/validasi/{id}', [ScheduleController::class, 'validasi'])->name('jadwal.validasi');

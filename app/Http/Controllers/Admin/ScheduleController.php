@@ -98,10 +98,15 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
-        // Ambil param filter dan showing (default)
+        // Jadwal inspeksi filter dan showing
         $filter = $request->get('filter', 'all');
         $showing = (int) $request->get('showing', 10);
 
+        // Permintaan ganti petugas filter dan showing (parameter baru)
+        $filterChange = $request->get('filter_change', 'all');
+        $showingChange = (int) $request->get('showing_change', 10);
+
+        // Query jadwal inspeksi (sama seperti sekarang)
         $query = Schedule::with([
             'product:product_id,name',
             'selectedDetails:detail_id,name',
@@ -111,57 +116,47 @@ class ScheduleController extends Controller
             }
         ]);
 
-        // Filter status jika bukan all
         if ($filter !== 'all') {
             $query->where('status', $filter);
         } else {
-            // Kalau all, batasi hanya status tertentu saja (sesuaikan jika perlu)
-            $query->whereIn('status', ['Dalam proses', 'Menunggu konfirmasi', 'Dijadwalkan ganti', 'Selesai']);
+            $query->whereIn('status', ['Dalam proses', 'Menunggu konfirmasi', 'Dijadwalkan ganti']);
         }
 
-        // Filter role inspector supaya hanya dapat jadwal dirinya sendiri
         if ($user->role === 'inspector' || $user->role === 'petugas') {
             $inspectorId = optional($user->inspector)->inspector_id;
-            if (!$inspectorId) {
-                abort(403, 'Akun Anda tidak terkait dengan data petugas.');
-            }
+            if (!$inspectorId) abort(403, 'Akun Anda tidak terkait dengan data petugas.');
             $query->where('inspector_id', $inspectorId);
         }
 
         $query->orderBy('started_date', 'asc');
-
-        // Pagination dengan per halaman $showing
         $schedules = $query->paginate($showing)->withQueryString();
 
-        // Map data supaya struktur sesuai kebutuhan blade
         $data = $schedules->getCollection()->transform(function ($schedule) {
             $detailProdukList = $schedule->selectedDetails->pluck('name')->toArray();
 
             return [
-                'id'               => $schedule->schedule_id,
+                'id' => $schedule->schedule_id,
                 'tanggal_inspeksi' => $schedule->started_date->format('Y-m-d'),
-                'nama_mitra'       => $schedule->partner->name ?? '-',
-                'lokasi'           => $schedule->partner->address ?? '-',
-                'nama_petugas'     => $schedule->inspector->name ?? '-',
-                'portofolio'       => $schedule->inspector->portfolio->name ?? '-',
-                'produk'           => $schedule->product->name ?? '-',
-                'detail_produk'    => $detailProdukList,
-                'status'           => $schedule->status,
+                'nama_mitra' => $schedule->partner->name ?? '-',
+                'lokasi' => $schedule->partner->address ?? '-',
+                'nama_petugas' => $schedule->inspector->name ?? '-',
+                'portofolio' => $schedule->inspector->portfolio->name ?? '-',
+                'produk' => $schedule->product->name ?? '-',
+                'detail_produk' => $detailProdukList,
+                'status' => $schedule->status,
             ];
         });
-
-        // Ganti collection lama dengan collection baru yang sudah map
         $schedules->setCollection($data);
 
-        // Ambil data lain jika perlu untuk blade
-        $changeRequests = $this->changeReq(null, true);
+        // Ambil data permintaan ganti petugas dengan filter dan showing khusus
+        $changeRequests = $this->changeReq($request, true, $filterChange, $showingChange);
 
+        // Data pendukung lain
         $partners = Partner::select('partner_id', 'name', 'address')->get();
         $portfolios = Portfolio::select('portfolio_id', 'name', 'department_id')->get();
         $departments = Department::select('department_id', 'name')->get();
         $produkList = Product::select('name')->distinct()->get();
 
-        // Kalau request AJAX/JSON, langsung kirim json
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -175,7 +170,6 @@ class ScheduleController extends Controller
             ]);
         }
 
-        // Render view dengan data
         return view('admin.inspection_schedule', [
             'schedules' => $schedules,
             'changeRequests' => $changeRequests,
@@ -185,9 +179,12 @@ class ScheduleController extends Controller
             'produkList' => $produkList,
             'showingSelected' => $showing,
             'filterSelected' => $filter,
+
+            // Kirim juga parameter filter/ showing untuk permintaan ganti petugas
+            'showingChangeSelected' => $showingChange,
+            'filterChangeSelected' => $filterChange,
         ]);
     }
-
 
     public function store(Request $request)
     {
@@ -473,26 +470,32 @@ class ScheduleController extends Controller
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
     }
 
-    public function changeReq(Request $request = null, bool $returnOnly = false)
+    // tampilan permintaan petugas
+    public function changeReq(Request $request = null, bool $returnOnly = false, $filterChange = 'all', $showingChange = 10)
     {
-        $changeRequests = InspectorChangeRequest::with([
+        $query = InspectorChangeRequest::with([
             'schedule.partner',
             'schedule.inspector',
             'oldInspector',
             'newInspector',
-        ])->orderByDesc('requested_date')->get();
+        ])->orderByDesc('requested_date');
 
-        // Tambahkan properti tambahan ke setiap model, tapi tetap objek
-        $changeRequests->each(function ($req) {
-            $req->tanggal_pengajuan = optional($req->requested_date)?->format('Y-m-d') ?? '-'; // baru
-            $req->petugas = optional($req->oldInspector)->name ?? '-';                         // baru
-            $req->mitra = optional($req->schedule->partner)->name ?? '-';                      // baru
-            $req->alasan = $req->reason ?? '-';                                                // baru
+        if ($filterChange !== 'all') {
+            $query->where('status', $filterChange);
+        }
+
+        $changeRequests = $query->paginate($showingChange)->withQueryString();
+
+        $changeRequests->getCollection()->transform(function ($req) {
+            $req->tanggal_pengajuan = optional($req->requested_date)?->format('Y-m-d') ?? '-';
+            $req->petugas = optional($req->oldInspector)->name ?? '-';
+            $req->mitra = optional($req->schedule->partner)->name ?? '-';
+            $req->alasan = $req->reason ?? '-';
             $req->petugas_baru = optional($req->newInspector)->name ?? '-';
             $req->status = $req->status ?? 'Menunggu Konfirmasi';
-        });
 
-        return $changeRequests;
+            return $req;
+        });
 
         if ($returnOnly) {
             return $changeRequests;
@@ -507,6 +510,8 @@ class ScheduleController extends Controller
 
         return view('admin.inspection_schedule', [
             'changeRequests' => $changeRequests,
+            'showingChangeSelected' => $showingChange,
+            'filterChangeSelected' => $filterChange,
         ]);
     }
 
@@ -517,17 +522,38 @@ class ScheduleController extends Controller
         ]);
 
         $reqchange = InspectorChangeRequest::findOrFail($id);
+
+        // Cek apakah ada petugas hasil reload
+        $finalInspectorId = $request->input('reloaded_inspector_id') ?: $reqchange->new_inspector_id;
+
+        // Simpan status dan new inspector ID ke tabel inspector_change_requests
         $reqchange->status = $request->status;
+        if ($finalInspectorId) {
+            $reqchange->new_inspector_id = $finalInspectorId;
+        }
         $reqchange->save();
 
-        // Jika disetujui, dan ada petugas baru yang dipilih
-        if ($request->status === 'Disetujui' && $reqchange->new_inspector_id) {
+        if ($request->status === 'Disetujui' && $finalInspectorId) {
             $schedule = Schedule::find($reqchange->schedule_id);
-
             if ($schedule) {
-                // Update jadwal dengan inspector baru
-                $schedule->inspector_id = $reqchange->new_inspector_id;
+                $schedule->inspector_id = $finalInspectorId;
                 $schedule->status = 'Menunggu Konfirmasi';
+                $schedule->save();
+
+                // Ambil data inspector baru dan data lain untuk WA
+                $newInspector = Inspector::find($finalInspectorId);
+                $partner = $schedule->partner;
+                $product = $schedule->product;
+                $detail_produk = $schedule->selectedDetails->pluck('name')->toArray();
+                $tanggal = $schedule->started_date->format('Y-m-d');
+
+                // Kirim WA ke inspector baru
+                $this->kirimWhatsappKeInspector($newInspector, $partner, $product, $detail_produk, $tanggal);
+            }
+        } elseif ($request->status === 'Ditolak') {
+            $schedule = Schedule::find($reqchange->schedule_id);
+            if ($schedule) {
+                $schedule->status = 'Dalam proses';
                 $schedule->save();
             }
         }

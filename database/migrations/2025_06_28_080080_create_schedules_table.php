@@ -19,7 +19,6 @@ return new class extends Migration
             $table->date('started_date');
             $table->enum('status', [
                 'Menunggu konfirmasi',
-                'Dijadwalkan ganti',
                 'Dalam proses',
                 'Selesai'
             ])->default('Menunggu konfirmasi');
