@@ -575,7 +575,7 @@ class ScheduleController extends Controller
 
         return back()->with('success', 'Status permintaan pergantian petugas berhasil diperbarui.');
     }
-    
+
     protected function sendValidasiJadwal($inspector, $schedule, bool $approved)
     {
         try {

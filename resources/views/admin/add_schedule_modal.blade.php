@@ -290,7 +290,7 @@
         let reloadClickCount = 0;
         btnReload.addEventListener('click', function () {
             if (reloadClickCount >= 2) {
-                alert('Petugas hanya bisa di-*reload* maksimal 2 kali.');
+                alert('Petugas hanya bisa diacak maksimal 2 kali.');
                 btnReload.disabled = true;
                 return;
             }

@@ -4,6 +4,12 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+        /* Hanya beri margin bawah biar ada jarak ke data berikutnya */
+        .rejection-reason {
+            padding-top: 15px;
+            margin-top: 0; /* tanpa margin atas */
+            margin-bottom: 15px;
+        }
     </style>
 <?php $__env->stopPush(); ?>
 
@@ -33,8 +39,25 @@
                 ></button>
             </div>
 
-            <div class="modal-body pt-2 mt-2 text-start">
+            <div class="modal-body pt-2 text-start">
                 <div class="row">
+                    
+                    <?php if(! empty($schedule["alasan_penolakan"])): ?>
+                        <div class="col-12 mb-3 rejection-reason">
+                            <label class="form-label fw-semibold">
+                                Alasan Penolakan
+                            </label>
+                            <textarea
+                                class="form-control"
+                                rows="3"
+                                readonly
+                                style="resize: none"
+                            >
+<?php echo e($schedule["alasan_penolakan"]); ?></textarea
+                            >
+                        </div>
+                    <?php endif; ?>
+
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Mitra</label>
                         <input

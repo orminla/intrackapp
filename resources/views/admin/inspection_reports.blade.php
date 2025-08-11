@@ -180,28 +180,17 @@
                                                     >
                                                         {{-- Setujui --}}
                                                         <li>
-                                                            <form
-                                                                method="POST"
-                                                                action="{{ route("admin.laporan.validasi", $item["id"]) }}"
-                                                                class="d-inline-block w-100"
+                                                            <button
+                                                                type="button"
+                                                                class="dropdown-item d-flex align-items-center gap-2 text-success btn-validasi"
+                                                                data-status="Disetujui"
+                                                                data-id="{{ $item["id"] }}"
                                                             >
-                                                                @csrf
-                                                                @method("PUT")
-                                                                <input
-                                                                    type="hidden"
-                                                                    name="status"
-                                                                    value="Disetujui"
-                                                                />
-                                                                <button
-                                                                    type="submit"
-                                                                    class="dropdown-item d-flex align-items-center gap-2 text-success"
-                                                                >
-                                                                    <i
-                                                                        class="ti ti-check"
-                                                                    ></i>
-                                                                    Setujui
-                                                                </button>
-                                                            </form>
+                                                                <i
+                                                                    class="ti ti-check"
+                                                                ></i>
+                                                                Disetujui
+                                                            </button>
                                                         </li>
 
                                                         {{-- Tolak (buka modal) --}}
@@ -214,15 +203,11 @@
                                                                 <i
                                                                     class="ti ti-x"
                                                                 ></i>
-                                                                Tolak
+                                                                Ditolak
                                                             </button>
                                                         </li>
                                                     </ul>
                                                 </div>
-                                            @else
-                                                <span class="text-muted">
-                                                    -
-                                                </span>
                                             @endif
                                         </td>
                                     </tr>
@@ -259,5 +244,110 @@
         </div>
     </div>
 
+    {{-- hidden validasi --}}
+    <form id="form-validasi" method="POST" style="display: none">
+        @csrf
+        @method("PUT")
+        <input type="hidden" name="status" id="input-status" value="" />
+    </form>
+
     @include("admin.rejected_modal")
 @endsection
+
+@push("scripts")
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: "{{ session('success') }}",
+                    timer: 2000,
+                    showConfirmButton: false,
+                    customClass: {
+                        popup: 'rounded-4',
+                        confirmButton: 'btn btn-primary rounded-2 px-4'
+                    },
+                    buttonsStyling: false
+                });
+            @endif
+
+            // Tangani tombol Disetujui
+            document.querySelectorAll('.btn-validasi').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const status = this.dataset.status;
+                    const id = this.dataset.id;
+
+                    if (status === 'Disetujui') {
+                        Swal.fire({
+                            title: 'Konfirmasi',
+                            text: `Yakin ingin menyetujui laporan ini?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, setujui',
+                            cancelButtonText: 'Batal',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-success rounded-2 px-4 me-2',
+                                cancelButton: 'btn btn-outline-muted rounded-2 px-4'
+                            },
+                            buttonsStyling: false,
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                submitValidasiForm(id, status);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Fungsi submit form validasi via AJAX (Disetujui)
+            function submitValidasiForm(id, status) {
+                const form = document.getElementById('form-validasi');
+                form.action = `/admin/laporan/${id}/status`;
+                document.getElementById('input-status').value = status;
+
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': form.querySelector('input[name=_token]').value,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'application/json'
+                    },
+                    body: formData
+                })
+                .then(async res => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan');
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: data.message || 'Status laporan berhasil diperbarui.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4'
+                        },
+                        buttonsStyling: false
+                    }).then(() => location.reload());
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: err.message || 'Terjadi kesalahan saat memproses permintaan.',
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4'
+                        },
+                        buttonsStyling: false
+                    });
+                });
+            }
+        });
+    </script>
+@endpush

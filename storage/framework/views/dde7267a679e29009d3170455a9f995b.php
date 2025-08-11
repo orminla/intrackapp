@@ -82,7 +82,7 @@
                         >
                             <button
                                 type="button"
-                                class="btn btn-light"
+                                class="btn btn-outline-primary"
                                 data-bs-dismiss="modal"
                             >
                                 Batal
