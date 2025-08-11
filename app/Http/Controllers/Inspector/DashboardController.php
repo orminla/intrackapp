@@ -9,6 +9,7 @@ use App\Models\Schedule;
 use App\Models\Inspector;
 use App\Models\InspectorChangeRequest;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -41,8 +42,9 @@ class DashboardController extends Controller
         $waitingSchedules = Schedule::with(['partner', 'product'])
             ->where('inspector_id', $inspectorId)
             ->where('status', 'Menunggu konfirmasi')
-            ->whereDoesntHave('changeRequests', function ($query) {
-                $query->whereIn('status', ['Disetujui', 'Ditolak']);
+            ->whereDoesntHave('changeRequests', function ($query) use ($inspectorId) {
+                $query->whereIn('status', ['Menunggu Konfirmasi', 'Disetujui'])
+                    ->where('old_inspector_id', $inspectorId);  // <-- tambah kondisi ini
             })
             ->orderBy('started_date')
             ->get();
@@ -154,9 +156,10 @@ class DashboardController extends Controller
                 : back()->withErrors('Data petugas tidak ditemukan.');
         }
 
+        // Ambil jadwal inspeksi milik petugas yang statusnya Menunggu Konfirmasi (case sensitive)
         $schedule = Schedule::where('schedule_id', $request->schedule_id)
             ->where('inspector_id', $inspector->inspector_id)
-            ->whereIn('status', ['Menunggu konfirmasi', 'Dijadwalkan ganti'])
+            ->where('status', 'Menunggu Konfirmasi')
             ->first();
 
         if (!$schedule) {
@@ -168,6 +171,7 @@ class DashboardController extends Controller
                 : back()->withErrors('Data jadwal tidak valid atau sudah dikonfirmasi.');
         }
 
+        // Cek apakah sudah ada permintaan ganti petugas yang belum diproses (status Menunggu Konfirmasi)
         $existingRequest = InspectorChangeRequest::where('schedule_id', $schedule->schedule_id)
             ->where('status', 'Menunggu Konfirmasi')
             ->first();
@@ -184,19 +188,25 @@ class DashboardController extends Controller
         $startedDate = Carbon::parse($schedule->started_date);
         $twoWeeksAgo = $startedDate->copy()->subDays(14);
 
+        // Cari inspector lain dengan portfolio yang sama, kecuali petugas saat ini
         $inspectors = Inspector::where('portfolio_id', $inspector->portfolio_id)
             ->where('inspector_id', '!=', $inspector->inspector_id)
             ->get();
 
-        $busyInspectorIds = Schedule::whereIn('status', ['menunggu konfirmasi', 'dalam proses', 'dijadwalkan ganti'])
+        // Ambil inspector yang sibuk (dengan status menunggu konfirmasi atau dalam proses) dan jadwal masih dekat (misal dari hari ini - 1 bulan ke depan)
+        $busyInspectorIds = Schedule::whereIn('status', ['Menunggu Konfirmasi', 'Dalam Proses'])
+            ->whereBetween('started_date', [now()->subMonth(), now()->addMonth()])
             ->pluck('inspector_id')
             ->toArray();
 
+        // Filter inspector yang tersedia
         $available = $inspectors->filter(function ($insp) use ($busyInspectorIds, $startedDate, $twoWeeksAgo, $schedule) {
+            // Jika inspector sibuk, tolak
             if (in_array($insp->inspector_id, $busyInspectorIds)) {
                 return false;
             }
 
+            // Cek apakah inspector sudah punya jadwal inspeksi pada tanggal yang sama
             $hasSameDate = Schedule::where('inspector_id', $insp->inspector_id)
                 ->whereDate('started_date', $schedule->started_date)
                 ->exists();
@@ -205,13 +215,15 @@ class DashboardController extends Controller
                 return false;
             }
 
+            // Cek inspeksi terakhir dalam 14 hari sebelum jadwal ini
             $recentInspections = Schedule::where('inspector_id', $insp->inspector_id)
                 ->whereDate('started_date', '>=', $twoWeeksAgo)
                 ->whereDate('started_date', '<', $startedDate)
-                ->whereIn('status', ['selesai', 'dalam proses', 'menunggu konfirmasi'])
+                ->whereIn('status', ['Selesai', 'Dalam Proses', 'Menunggu Konfirmasi'])
                 ->orderBy('started_date', 'desc')
                 ->get();
 
+            // Jika inspector sudah 4 inspeksi dalam periode itu, cek apakah sudah lebih dari 7 hari dari inspeksi terakhir
             if ($recentInspections->count() >= 4) {
                 $lastInspectionDate = Carbon::parse($recentInspections->first()->started_date);
                 $daysSinceLast = $startedDate->diffInDays($lastInspectionDate);
@@ -232,14 +244,27 @@ class DashboardController extends Controller
 
         $newInspector = $available->random();
 
-        $changeRequest = InspectorChangeRequest::create([
-            'schedule_id' => $schedule->schedule_id,
-            'old_inspector_id' => $inspector->inspector_id,
-            'new_inspector_id' => $newInspector->inspector_id,
-            'reason' => $request->reason,
-            'requested_date' => now(),
-            'status' => 'Menunggu Konfirmasi',
-        ]);
+        // Simpan dalam transaksi supaya aman
+        DB::beginTransaction();
+        try {
+            $changeRequest = InspectorChangeRequest::create([
+                'schedule_id' => $schedule->schedule_id,
+                'old_inspector_id' => $inspector->inspector_id,
+                'new_inspector_id' => $newInspector->inspector_id,
+                'reason' => $request->reason,
+                'requested_date' => now(),
+                'status' => 'Menunggu Konfirmasi',
+            ]);
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $request->wantsJson()
+                ? response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan permintaan ganti petugas. Silakan coba lagi.',
+                ], 500)
+                : back()->withErrors('Gagal menyimpan permintaan ganti petugas. Silakan coba lagi.');
+        }
 
         return $request->wantsJson()
             ? response()->json([

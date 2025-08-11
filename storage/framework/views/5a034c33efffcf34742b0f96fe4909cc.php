@@ -503,7 +503,7 @@
                                                                 <form
                                                                     method="POST"
                                                                     action="<?php echo e(route("admin.jadwal.validasi", $req["id"])); ?>"
-                                                                    class="d-inline-block w-100"
+                                                                    class="d-inline-block w-100 validation-form"
                                                                 >
                                                                     <?php echo csrf_field(); ?>
                                                                     <?php echo method_field("PUT"); ?>
@@ -581,140 +581,233 @@
 
 <?php $__env->startPush("scripts"); ?>
     <script>
+        // SweetAlert flash message langsung jalan tanpa tunggu DOMContentLoaded
+        <?php if(session('success') || session('error') || session('warning')): ?>
+            Swal.fire({
+                icon: '<?php echo e(session("success") ? "success" : (session("error") ? "error" : "warning")); ?>',
+                title: '<?php echo e(session("success") ? "Berhasil!" : (session("error") ? "Gagal!" : "Perhatian!")); ?>',
+                text: "<?php echo e(session('success') ?? session('error') ?? session('warning')); ?>",
+                timer: 1500,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'rounded-4',
+                    confirmButton: 'btn btn-primary rounded-2 px-4',
+                },
+                buttonsStyling: false,
+            });
+        <?php endif; ?>
+
+        <?php if(session('inspector_changed')): ?>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: "<?php echo e(session('inspector_changed')); ?>",
+                timer: 1800,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'rounded-4',
+                    confirmButton: 'btn btn-primary rounded-2 px-4',
+                },
+                buttonsStyling: false,
+            });
+        <?php endif; ?>
+
+        <?php if($errors->any()): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                html: '<?php echo implode("<br>", $errors->all()); ?>',
+                timer: 1500,
+                customClass: {
+                    popup: 'rounded-4',
+                    confirmButton: 'btn btn-primary rounded-2 px-4',
+                },
+                buttonsStyling: false,
+            });
+        <?php endif; ?>
+    </script>
+
+    <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Tombol reload petugas di tabel
-            document.querySelectorAll('.btn-reload-inspector').forEach((btn) => {
-                btn.addEventListener('click', function () {
-                    let reloadCount = parseInt(this.dataset.reloadCount || '0');
+            document
+                .querySelectorAll('.btn-reload-inspector')
+                .forEach((btn) => {
+                    btn.addEventListener('click', function () {
+                        let reloadCount = parseInt(
+                            this.dataset.reloadCount || '0',
+                        );
 
-                    if (reloadCount >= 2) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Batas reload tercapai',
-                            text: 'Maksimal reload petugas 2 kali sebelum menyimpan.',
-                            customClass: {
-                                popup: 'rounded-4',
-                                confirmButton: 'btn btn-warning rounded-2 px-4',
-                            },
-                            buttonsStyling: false,
-                        });
-                        return;
-                    }
-
-                    const id = this.dataset.id;
-                    const portfolioId = this.dataset.portfolioId;
-                    const startedDate = this.dataset.startedDate;
-
-                    // Disable tombol dan tampilkan loading spinner
-                    this.disabled = true;
-                    const icon = this.querySelector('i');
-                    if (icon) {
-                        icon.classList.add('spinner-border', 'spinner-border-sm');
-                        icon.classList.remove('ti-refresh');
-                    }
-
-                    fetch(`/admin/get-inspector?portfolio_id=${portfolioId}&started_date=${startedDate}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.inspector_id && data.name) {
-                                const row = btn.closest('tr');
-                                const petugasBaruCell = row.querySelectorAll('td')[4]; // kolom Petugas Baru (indeks 4)
-                                const currentName = petugasBaruCell.textContent.trim();
-
-                                if (currentName === data.name) {
-                                    Swal.fire({
-                                        icon: 'info',
-                                        title: 'Petugas sama',
-                                        html: `Petugas pengganti adalah <strong>${data.name}</strong> yang sudah ada di tabel.`,
-                                        customClass: {
-                                            popup: 'rounded-4',
-                                            confirmButton: 'btn btn-info rounded-2 px-4',
-                                        },
-                                        buttonsStyling: false,
-                                    });
-                                } else {
-                                    const availabilityNote = data.note || 'Info ketersediaan tidak tersedia.';
-
-                                    Swal.fire({
-                                        icon: 'warning',
-                                        title: 'Petugas pengganti tersedia',
-                                        html: `<p>Ganti petugas dengan <strong>${data.name}</strong>?</p>`,
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Ya, ganti',
-                                        cancelButtonText: 'Batal',
-                                        customClass: {
-                                            popup: 'rounded-4',
-                                            confirmButton: 'btn btn-success rounded-2 px-4 me-2',
-                                            cancelButton: 'btn btn-outline-muted rounded-2 px-4',
-                                        },
-                                        buttonsStyling: false,
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            petugasBaruCell.textContent = data.name;
-                                            petugasBaruCell.title = availabilityNote;
-
-                                            // Simpan ID petugas baru ke tombol reload
-                                            btn.dataset.newInspectorId = data.inspector_id;
-
-                                            // Update reload count
-                                            reloadCount++;
-                                            btn.dataset.reloadCount = reloadCount;
-                                        }
-                                    });
-                                }
-                            } else {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Petugas tidak ditemukan',
-                                    text: 'Petugas yang tersedia tidak ditemukan.',
-                                    customClass: {
-                                        popup: 'rounded-4',
-                                        confirmButton: 'btn btn-warning rounded-2 px-4',
-                                    },
-                                    buttonsStyling: false,
-                                });
-                            }
-                        })
-                        .catch(() => {
+                        if (reloadCount >= 2) {
                             Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal',
-                                text: 'Terjadi kesalahan saat mengambil data petugas.',
+                                icon: 'warning',
+                                title: 'Batas reload tercapai',
+                                text: 'Maksimal reload petugas 2 kali sebelum menyimpan.',
                                 customClass: {
                                     popup: 'rounded-4',
-                                    confirmButton: 'btn btn-danger rounded-2 px-4',
+                                    confirmButton:
+                                        'btn btn-warning rounded-2 px-4',
                                 },
                                 buttonsStyling: false,
                             });
-                        })
-                        .finally(() => {
-                            // Enable tombol dan kembalikan icon
-                            this.disabled = false;
-                            if (icon) {
-                                icon.classList.remove('spinner-border', 'spinner-border-sm');
-                                icon.classList.add('ti-refresh');
-                            }
-                        });
+                            return;
+                        }
+
+                        const id = this.dataset.id;
+                        const portfolioId = this.dataset.portfolioId;
+                        const startedDate = this.dataset.startedDate;
+
+                        this.disabled = true;
+                        const icon = this.querySelector('i');
+                        if (icon) {
+                            icon.classList.add(
+                                'spinner-border',
+                                'spinner-border-sm',
+                            );
+                            icon.classList.remove('ti-refresh');
+                        }
+
+                        fetch(
+                            `/admin/get-inspector?portfolio_id=${portfolioId}&started_date=${startedDate}`,
+                        )
+                            .then((res) => res.json())
+                            .then((data) => {
+                                if (data.inspector_id && data.name) {
+                                    const row = btn.closest('tr');
+                                    const petugasBaruCell =
+                                        row.querySelectorAll('td')[4];
+                                    const currentName =
+                                        petugasBaruCell.textContent.trim();
+
+                                    if (currentName === data.name) {
+                                        Swal.fire({
+                                            icon: 'info',
+                                            title: 'Petugas sama',
+                                            html: `Petugas pengganti adalah <strong>${data.name}</strong> yang sudah ada di tabel.`,
+                                            customClass: {
+                                                popup: 'rounded-4',
+                                                confirmButton:
+                                                    'btn btn-info rounded-2 px-4',
+                                            },
+                                            buttonsStyling: false,
+                                        });
+                                    } else {
+                                        const availabilityNote =
+                                            data.note ||
+                                            'Info ketersediaan tidak tersedia.';
+
+                                        Swal.fire({
+                                            icon: 'warning',
+                                            title: 'Petugas pengganti tersedia',
+                                            html: `<p>Ganti petugas dengan <strong>${data.name}</strong>?</p>`,
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Ya, ganti',
+                                            cancelButtonText: 'Batal',
+                                            customClass: {
+                                                popup: 'rounded-4',
+                                                confirmButton:
+                                                    'btn btn-success rounded-2 px-4 me-2',
+                                                cancelButton:
+                                                    'btn btn-outline-muted rounded-2 px-4',
+                                            },
+                                            buttonsStyling: false,
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                petugasBaruCell.textContent =
+                                                    data.name;
+                                                petugasBaruCell.title =
+                                                    availabilityNote;
+
+                                                btn.dataset.newInspectorId =
+                                                    data.inspector_id;
+
+                                                reloadCount++;
+                                                btn.dataset.reloadCount =
+                                                    reloadCount;
+
+                                                setTimeout(() => {
+                                                    Swal.fire({
+                                                        icon: 'success',
+                                                        title: 'Berhasil',
+                                                        text: `Petugas berhasil diganti menjadi ${data.name}`,
+                                                        timer: 1500,
+                                                        showConfirmButton: false,
+                                                        customClass: {
+                                                            popup: 'rounded-4',
+                                                            confirmButton:
+                                                                'btn btn-primary rounded-2 px-4',
+                                                        },
+                                                        buttonsStyling: false,
+                                                    });
+                                                }, 500);
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Petugas tidak ditemukan',
+                                        text: 'Petugas yang tersedia tidak ditemukan.',
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton:
+                                                'btn btn-warning rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    });
+                                }
+                            })
+                            .catch(() => {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: 'Terjadi kesalahan saat mengambil data petugas.',
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                        confirmButton:
+                                            'btn btn-danger rounded-2 px-4',
+                                    },
+                                    buttonsStyling: false,
+                                });
+                            })
+                            .finally(() => {
+                                this.disabled = false;
+                                if (icon) {
+                                    icon.classList.remove(
+                                        'spinner-border',
+                                        'spinner-border-sm',
+                                    );
+                                    icon.classList.add('ti-refresh');
+                                }
+                            });
+                    });
                 });
-            });
 
             // Saat submit validasi, sertakan ID petugas hasil reload
-            document.querySelectorAll('form[action*="validasi"]').forEach(form => {
-                form.addEventListener('submit', function() {
-                    const row = this.closest('tr');
-                    const reloadBtn = row.querySelector('.btn-reload-inspector');
-                    const reloadIdInput = this.querySelector('.reload-id-input');
+            document
+                .querySelectorAll('form[action*="validasi"]')
+                .forEach((form) => {
+                    form.addEventListener('submit', function () {
+                        const row = this.closest('tr');
+                        const reloadBtn = row.querySelector(
+                            '.btn-reload-inspector',
+                        );
+                        const reloadIdInput =
+                            this.querySelector('.reload-id-input');
 
-                    if (reloadBtn) {
-                        if (reloadIdInput && reloadBtn.dataset.newInspectorId) {
-                            reloadIdInput.value = reloadBtn.dataset.newInspectorId;
+                        if (reloadBtn) {
+                            if (
+                                reloadIdInput &&
+                                reloadBtn.dataset.newInspectorId
+                            ) {
+                                reloadIdInput.value =
+                                    reloadBtn.dataset.newInspectorId;
+                            }
+                            reloadBtn.dataset.reloadCount = 0;
+                            reloadBtn.dataset.newInspectorId = '';
                         }
-                        // Reset data reload agar setelah validasi kembali nol
-                        reloadBtn.dataset.reloadCount = 0;
-                        reloadBtn.dataset.newInspectorId = '';
-                    }
+                    });
                 });
-            });
 
             // Konfirmasi hapus dengan SweetAlert2
             document.querySelectorAll('.delete-button').forEach((btn) => {
@@ -730,7 +823,8 @@
                         customClass: {
                             popup: 'rounded-4',
                             confirmButton: 'btn btn-danger rounded-2 px-4 me-2',
-                            cancelButton: 'btn btn-outline-muted rounded-2 px-4',
+                            cancelButton:
+                                'btn btn-outline-muted rounded-2 px-4',
                         },
                         buttonsStyling: false,
                     }).then((result) => {
@@ -738,102 +832,146 @@
                             fetch(form.action, {
                                 method: 'POST',
                                 headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'X-CSRF-TOKEN': document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    ).content,
                                     'X-Requested-With': 'XMLHttpRequest',
                                     Accept: 'application/json',
                                 },
                                 body: new URLSearchParams(new FormData(form)),
                             })
-                            .then(async (response) => {
-                                const data = await response.json();
-                                if (!response.ok) throw new Error(data.message || 'Gagal menghapus data');
-                                return data;
-                            })
-                            .then((data) => {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Berhasil!',
-                                    text: data.message || 'Data petugas berhasil dihapus.',
-                                    timer: 1500,
-                                    showConfirmButton: false,
-                                    customClass: {
-                                        popup: 'rounded-4',
-                                        confirmButton: 'btn btn-primary rounded-2 px-4',
-                                    },
-                                    buttonsStyling: false,
-                                }).then(() => {
-                                    location.reload();
+                                .then(async (response) => {
+                                    const data = await response.json();
+                                    if (!response.ok)
+                                        throw new Error(
+                                            data.message ||
+                                                'Gagal menghapus data',
+                                        );
+                                    return data;
+                                })
+                                .then((data) => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Berhasil!',
+                                        text:
+                                            data.message ||
+                                            'Data petugas berhasil dihapus.',
+                                        timer: 1500,
+                                        showConfirmButton: false,
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton:
+                                                'btn btn-primary rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                })
+                                .catch((error) => {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Gagal!',
+                                        text:
+                                            error.message ||
+                                            'Terjadi kesalahan saat menghapus.',
+                                        customClass: {
+                                            popup: 'rounded-4',
+                                            confirmButton:
+                                                'btn btn-primary rounded-2 px-4',
+                                        },
+                                        buttonsStyling: false,
+                                    });
                                 });
-                            })
-                            .catch((error) => {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Gagal!',
-                                    text: error.message || 'Terjadi kesalahan saat menghapus.',
-                                    customClass: {
-                                        popup: 'rounded-4',
-                                        confirmButton: 'btn btn-primary rounded-2 px-4',
-                                    },
-                                    buttonsStyling: false,
-                                });
-                            });
                         }
                     });
                 });
             });
 
             // Auto submit filter
-            document.getElementById('showing')?.addEventListener('change', function () {
-                document.getElementById('filterForm').submit();
-            });
-            document.getElementById('filter')?.addEventListener('change', function () {
-                document.getElementById('filterForm').submit();
-            });
-
-            // SweetAlert for flash messages
-            <?php if(session('success') || session('error') || session('warning')): ?>
-                Swal.fire({
-                    icon: '<?php echo e(session("success") ? "success" : (session("error") ? "error" : "warning")); ?>',
-                    title: '<?php echo e(session("success") ? "Berhasil!" : (session("error") ? "Gagal!" : "Perhatian!")); ?>',
-                    text: "<?php echo e(session('success') ?? session('error') ?? session('warning')); ?>",
-                    timer: 1500,
-                    showConfirmButton: false,
-                    customClass: {
-                        popup: 'rounded-4',
-                        confirmButton: 'btn btn-primary rounded-2 px-4',
-                    },
-                    buttonsStyling: false,
+            document
+                .getElementById('showing')
+                ?.addEventListener('change', function () {
+                    document.getElementById('filterForm').submit();
                 });
-            <?php endif; ?>
-
-            <?php if(session('inspector_changed')): ?>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: "<?php echo e(session('inspector_changed')); ?>",
-                    timer: 1800,
-                    showConfirmButton: false,
-                    customClass: {
-                        popup: 'rounded-4',
-                        confirmButton: 'btn btn-primary rounded-2 px-4',
-                    },
-                    buttonsStyling: false,
+            document
+                .getElementById('filter')
+                ?.addEventListener('change', function () {
+                    document.getElementById('filterForm').submit();
                 });
-            <?php endif; ?>
 
-            <?php if($errors->any()): ?>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal!',
-                    html: '<?php echo implode("<br>", $errors->all()); ?>',
-                    timer: 1500,
-                    customClass: {
-                        popup: 'rounded-4',
-                        confirmButton: 'btn btn-primary rounded-2 px-4',
-                    },
-                    buttonsStyling: false,
+            // ======= AJAX SUBMIT VALIDASI FORM =======
+            document
+                .querySelectorAll('form.validation-form')
+                .forEach((form) => {
+                    form.addEventListener('submit', function (e) {
+                        e.preventDefault();
+
+                        const url = this.action;
+                        const formData = new FormData(this);
+                        const submitBtn = this.querySelector(
+                            'button[type="submit"]',
+                        );
+                        if (submitBtn) submitBtn.disabled = true;
+
+                        fetch(url, {
+                            method: 'POST', // ganti dari PUT jadi POST karena pakai spoof method di form
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector(
+                                    'meta[name="csrf-token"]',
+                                ).content,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                Accept: 'application/json',
+                            },
+                            body: formData,
+                        })
+                            .then(async (res) => {
+                                const data = await res.json();
+                                if (!res.ok)
+                                    throw new Error(
+                                        data.message || 'Terjadi kesalahan',
+                                    );
+                                return data;
+                            })
+                            .then((data) => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text:
+                                        data.message ||
+                                        'Status permintaan berhasil diperbarui.',
+                                    timer: 1500,
+                                    showConfirmButton: false,
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                        confirmButton:
+                                            'btn btn-primary rounded-2 px-4',
+                                    },
+                                    buttonsStyling: false,
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            })
+                            .catch((err) => {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal!',
+                                    text:
+                                        err.message ||
+                                        'Terjadi kesalahan saat memproses permintaan.',
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                        confirmButton:
+                                            'btn btn-primary rounded-2 px-4',
+                                    },
+                                    buttonsStyling: false,
+                                });
+                            })
+                            .finally(() => {
+                                if (submitBtn) submitBtn.disabled = false;
+                            });
+                    });
                 });
-            <?php endif; ?>
         });
     </script>
 <?php $__env->stopPush(); ?>

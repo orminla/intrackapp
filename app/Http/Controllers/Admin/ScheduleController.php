@@ -523,41 +523,110 @@ class ScheduleController extends Controller
 
         $reqchange = InspectorChangeRequest::findOrFail($id);
 
-        // Cek apakah ada petugas hasil reload
         $finalInspectorId = $request->input('reloaded_inspector_id') ?: $reqchange->new_inspector_id;
 
-        // Simpan status dan new inspector ID ke tabel inspector_change_requests
         $reqchange->status = $request->status;
         if ($finalInspectorId) {
             $reqchange->new_inspector_id = $finalInspectorId;
         }
         $reqchange->save();
 
+        $schedule = Schedule::find($reqchange->schedule_id);
+        $oldInspector = Inspector::find($reqchange->old_inspector_id);
+
         if ($request->status === 'Disetujui' && $finalInspectorId) {
-            $schedule = Schedule::find($reqchange->schedule_id);
             if ($schedule) {
                 $schedule->inspector_id = $finalInspectorId;
                 $schedule->status = 'Menunggu Konfirmasi';
                 $schedule->save();
 
-                // Ambil data inspector baru dan data lain untuk WA
                 $newInspector = Inspector::find($finalInspectorId);
                 $partner = $schedule->partner;
                 $product = $schedule->product;
                 $detail_produk = $schedule->selectedDetails->pluck('name')->toArray();
-                $tanggal = $schedule->started_date->format('Y-m-d');
+                $tanggal = Carbon::parse($schedule->started_date)->translatedFormat('d F Y');
 
-                // Kirim WA ke inspector baru
                 $this->kirimWhatsappKeInspector($newInspector, $partner, $product, $detail_produk, $tanggal);
+
+                if ($oldInspector) {
+                    $this->sendValidasiJadwal($oldInspector, $schedule, true);
+                }
             }
         } elseif ($request->status === 'Ditolak') {
-            $schedule = Schedule::find($reqchange->schedule_id);
             if ($schedule) {
                 $schedule->status = 'Dalam proses';
                 $schedule->save();
             }
+
+            $reqchange->new_inspector_id = $reqchange->old_inspector_id;
+            $reqchange->save();
+
+            if ($oldInspector) {
+                $this->sendValidasiJadwal($oldInspector, $schedule, false);
+            }
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Status permintaan pergantian petugas berhasil diperbarui.',
+            ]);
         }
 
         return back()->with('success', 'Status permintaan pergantian petugas berhasil diperbarui.');
+    }
+    
+    protected function sendValidasiJadwal($inspector, $schedule, bool $approved)
+    {
+        try {
+            $phone = preg_replace('/[^0-9]/', '', $inspector->phone_num);
+
+            if (str_starts_with($phone, '0')) {
+                $phone = '62' . substr($phone, 1);
+            }
+
+            if (!preg_match('/^62[0-9]{8,13}$/', $phone)) {
+                Log::warning('Nomor telepon tidak valid', ['phone' => $phone]);
+                return false;
+            }
+
+            $statusText = $approved ? 'disetujui' : 'ditolak';
+
+            $tanggal = Carbon::parse($schedule->started_date)->translatedFormat('d F Y');
+
+            $message = "📢 *Permintaan Pergantian Petugas*\n\n"
+                . "Halo *{$inspector->name}*, permintaan pergantian petugas untuk jadwal inspeksi pada tanggal *{$tanggal}* dengan mitra *{$schedule->partner->name}* telah *{$statusText}*.\n\n"
+                . "Terima kasih atas perhatian dan kerjasama Anda.\n"
+                . "InTrack App.";
+
+            $response = Http::withHeaders([
+                'Authorization' => 'uf1VVEf2S7DGDWMfS5Ry',
+            ])->post('https://api.fonnte.com/send', [
+                'target'  => $phone,
+                'message' => $message,
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Gagal kirim WhatsApp validasi ke petugas lama', [
+                    'phone'    => $phone,
+                    'response' => $response->body(),
+                ]);
+                return false;
+            }
+
+            Log::info('WhatsApp validasi berhasil dikirim ke petugas lama', [
+                'phone'         => $phone,
+                'inspector_id'  => $inspector->inspector_id,
+                'jadwal'        => $tanggal,
+                'status'        => $statusText,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Exception saat kirim WA validasi ke petugas lama', [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 }
