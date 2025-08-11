@@ -10,6 +10,7 @@ use App\Models\Report;
 use App\Models\Inspector;
 use App\Models\Document;
 use Illuminate\Support\Facades\Storage;
+use PDF;
 
 class HistoryController extends Controller
 {
@@ -26,9 +27,9 @@ class HistoryController extends Controller
             ->whereHas('report', function ($query) {
                 $query->where('status', 'Disetujui');
             })
-            ->get();
+            ->paginate(10); // sesuaikan default halaman dan jumlahnya
 
-        $histories = $schedules->map(function ($schedule) {
+        $histories = $schedules->through(function ($schedule) {
             $alamat = $schedule->partner->address ?? '-';
             $parts = array_map('trim', explode(',', $alamat));
             $lokasiSingkat = count($parts) >= 2 ? $parts[0] . ', ' . end($parts) : $alamat;
@@ -41,9 +42,9 @@ class HistoryController extends Controller
                 'location'        => $lokasiSingkat,
                 'product'         => $schedule->product->name ?? '-',
                 'detail_produk'   => $schedule->selectedDetails->pluck('name')->toArray() ?? [],
-                'inspector_name' => $schedule->inspector ? implode(' ', array_slice(explode(' ', $schedule->inspector->name), 0, 2)) : '-',
-                'bidang'          => $schedule->inspector->portfolio->name ?? '-', // ✅ tambahkan ini
-                'petugas'         => $schedule->inspector->name ?? '-',             // ✅ dan ini juga (biar konsisten)
+                'inspector_name'  => $schedule->inspector ? implode(' ', array_slice(explode(' ', $schedule->inspector->name), 0, 2)) : '-',
+                'bidang'          => $schedule->inspector->portfolio->name ?? '-',
+                'petugas'         => $schedule->inspector->name ?? '-',
                 'status'          => strtolower($schedule->report->status ?? 'pending'),
                 'documents'       => $schedule->report?->documents->map(fn($d) => [
                     'id'   => $d->doc_id,
@@ -53,7 +54,9 @@ class HistoryController extends Controller
             ];
         });
 
-        return view('admin.inspection_history', compact('histories'));
+        return view('admin.inspection_history', [
+            'histories' => $histories,
+        ]);
     }
 
     public function show($id)
@@ -84,5 +87,42 @@ class HistoryController extends Controller
         ];
 
         return view('admin.detail_history.show', compact('detail'));
+    }
+
+    public function downloadPdf($id)
+    {
+        $report = Report::with([
+            'schedule.partner',
+            'schedule.inspector.portfolio.department', // perbaiki ejaan
+            'schedule.product',
+            'schedule.selectedDetails',
+            'documents'
+        ])->findOrFail($id);
+
+        $schedule = $report->schedule;
+
+        $data = [
+            'report'        => $report,
+            'schedule'      => $schedule,
+            'partner'       => optional($schedule->partner),
+            'inspector'     => optional($schedule->inspector),
+            'department'    => optional($schedule->inspector->portfolio->department)->name,
+            'portofolio'    => optional($schedule->inspector->portfolio)->name,
+            'product'       => $schedule->product,
+            'details'       => $schedule->selectedDetails,
+            'documents'     => $report->documents,
+            'started_date'  => $schedule->started_date,
+            'finished_date' => $report->finished_date ?? $schedule->finished_date,
+        ];
+
+        $pdf = PDF::loadView('report_pdf', $data);
+
+        $filename = sprintf(
+            "Bukti_Inspeksi_%s_%s.pdf",
+            str_replace(' ', '_', $schedule->partner->name),
+            $schedule->started_date->format('Ymd')
+        );
+
+        return $pdf->download($filename);
     }
 }

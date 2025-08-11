@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Carbon\Carbon;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -18,26 +19,27 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // ✅ Gate untuk admin
+        // Set bahasa Carbon ke Indonesia
+        Carbon::setLocale('id');
+
+        // Gate untuk admin
         Gate::define('isAdmin', function (User $user) {
             return $user->role === 'admin';
         });
 
-        // ✅ Gate untuk inspector
+        // Gate untuk inspector
         Gate::define('isInspector', function (User $user) {
             return $user->role === 'inspector';
         });
 
-        // ✅ Inject data profil ke semua view
+        // Inject data profil ke semua view
         View::composer('*', function ($view) {
             $user = Auth::user();
 
             if ($user) {
                 $photoDefault = asset('login_assets/images/profile/user-7.jpg');
-
                 $photo = $user->photo_url;
 
-                // Pastikan path photo diakses dengan benar jika tersimpan di storage/
                 if ($photo && str_starts_with($photo, 'storage/')) {
                     $photo = asset($photo);
                 }

@@ -1,3 +1,7 @@
+@php
+    $showingSelected = request()->get("showing", "10");
+@endphp
+
 @extends("admin.layouts.app")
 
 @section("title", "Riwayat Inspeksi")
@@ -5,10 +9,49 @@
 @section("content")
     <div class="card rounded-4">
         <div class="card-body">
-            <div
-                class="d-flex justify-content-between align-items-center flex-wrap mb-4"
-            >
-                <h4 class="card-title mb-0">Riwayat Inspeksi</h4>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0">Riwayat Inspeksi</h4>
+
+                <form
+                    method="GET"
+                    id="showingForm"
+                    class="d-flex align-items-center gap-2"
+                >
+                    <label for="showing" class="fw-normal text-muted mb-0">
+                        Showing
+                    </label>
+                    <select
+                        name="showing"
+                        id="showing"
+                        class="form-select form-select-sm border-0 bg-light"
+                        style="
+                            width: auto;
+                            min-width: 70px;
+                            height: 36px;
+                            font-size: 0.875rem;
+                        "
+                        onchange="document.getElementById('showingForm').submit()"
+                    >
+                        <option
+                            value="10"
+                            {{ $showingSelected == "10" ? "selected" : "" }}
+                        >
+                            10
+                        </option>
+                        <option
+                            value="25"
+                            {{ $showingSelected == "25" ? "selected" : "" }}
+                        >
+                            25
+                        </option>
+                        <option
+                            value="50"
+                            {{ $showingSelected == "50" ? "selected" : "" }}
+                        >
+                            50
+                        </option>
+                    </select>
+                </form>
             </div>
 
             <div class="table-responsive">
@@ -35,7 +78,6 @@
                                 <td>{{ $item->product }}</td>
                                 <td>{{ $item->date ?? "-" }}</td>
                                 <td>{{ $item->tanggal_selesai ?? "-" }}</td>
-
                                 <td>
                                     <button
                                         type="button"
@@ -48,10 +90,19 @@
                                             class="ti ti-eye fs-5 text-primary"
                                         ></i>
                                     </button>
+
+                                    <a
+                                        href="{{ route("admin.riwayat.download", $item->id) }}"
+                                        class="btn btn-sm px-1 border-0 bg-transparent"
+                                        title="Unduh Bukti Inspeksi"
+                                    >
+                                        <i
+                                            class="ti ti-download fs-5 text-success"
+                                        ></i>
+                                    </a>
                                 </td>
                             </tr>
 
-                            {{-- Include modal untuk baris ini --}}
                             @include(
                                 "admin.detail_history_modal",
                                 [
@@ -72,7 +123,7 @@
                         @empty
                             <tr>
                                 <td
-                                    colspan="7"
+                                    colspan="8"
                                     class="text-center text-muted py-4"
                                 >
                                     Tidak ada riwayat inspeksi.
@@ -81,6 +132,9 @@
                         @endforelse
                     </tbody>
                 </table>
+
+                {{-- Pagination --}}
+                <x-table-pagination :data="$histories" />
             </div>
         </div>
     </div>

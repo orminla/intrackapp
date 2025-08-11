@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/riwayat', [HistoryController::class, 'index'])->name('riwayat');
         Route::get('/riwayat/{id}', [HistoryController::class, 'show'])->name('riwayat.show');
+        Route::get('/riwayat/{id}/download', [HistoryController::class, 'downloadPdf'])->name('riwayat.download');
 
         Route::post('/petugas/import', [InspectorController::class, 'import'])->name('petugas.import');
         Route::resource('petugas', InspectorController::class);
