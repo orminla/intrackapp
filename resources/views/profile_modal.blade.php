@@ -115,7 +115,7 @@
         <div class="modal-content rounded-4 p-3">
             <form
                 method="POST"
-                action="{{ route("profile.update", Auth::id()) }}"
+                action="{{ route("profile.update", auth()->id()) }}"
                 enctype="multipart/form-data"
             >
                 @csrf

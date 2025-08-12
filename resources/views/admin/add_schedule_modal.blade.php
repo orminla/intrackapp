@@ -316,6 +316,9 @@
             quotaText.textContent = 'Ketersediaan: -';
             btnReload.disabled = true;
             checkFormValidity();
+
+            // Reload halaman ketika modal ditutup
+            location.reload();
         });
 
         formTambahJadwal.addEventListener('submit', function (e) {

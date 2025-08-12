@@ -116,7 +116,7 @@
         <div class="modal-content rounded-4 p-3">
             <form
                 method="POST"
-                action="<?php echo e(route("profile.update", Auth::id())); ?>"
+                action="<?php echo e(route("profile.update", auth()->id())); ?>"
                 enctype="multipart/form-data"
             >
                 <?php echo csrf_field(); ?>

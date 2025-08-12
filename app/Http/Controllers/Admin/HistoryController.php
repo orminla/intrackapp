@@ -10,9 +10,7 @@ use App\Models\Report;
 use App\Models\Inspector;
 use App\Models\Document;
 use Illuminate\Support\Facades\Storage;
-use PDF;
-use Imagick;
-use setasign\Fpdi\Fpdi;
+use Barryvdh\DomPDF\Facade\Pdf as DomPdfFacade;
 
 class HistoryController extends Controller
 {
@@ -91,7 +89,7 @@ class HistoryController extends Controller
         return view('admin.detail_history.show', compact('detail'));
     }
 
-    public function downloadPdf($id)
+    public function downloadPdf($schedule_id)
     {
         $report = Report::with([
             'schedule.partner',
@@ -99,19 +97,17 @@ class HistoryController extends Controller
             'schedule.product',
             'schedule.selectedDetails',
             'documents'
-        ])->findOrFail($id);
+        ])->where('schedule_id', $schedule_id)->firstOrFail();
 
         $schedule = $report->schedule;
 
-        // Ambil daftar nama dokumen saja
         $documents = $report->documents->map(function ($doc) {
             return [
                 'name' => $doc->original_name,
             ];
         })->toArray();
 
-        // Buat PDF dari Blade view
-        $pdf = PDF::setOptions([
+        $pdf = DomPdfFacade::setOptions([
             'isRemoteEnabled' => true,
             'isHtml5ParserEnabled' => true,
         ])->loadView('report_pdf', [
@@ -123,15 +119,15 @@ class HistoryController extends Controller
             'portofolio'    => optional($schedule->inspector->portfolio)->name ?? '-',
             'product'       => $schedule->product,
             'details'       => $schedule->selectedDetails,
-            'documents'     => $documents, // hanya nama file
+            'documents'     => $documents,
             'started_date'  => $schedule->started_date,
             'finished_date' => $report->finished_date ?? $schedule->finished_date,
         ]);
 
         $filename = sprintf(
             "Bukti_Inspeksi_%s_%s.pdf",
-            str_replace(' ', '_', $schedule->partner->name),
-            $schedule->started_date->format('Ymd')
+            str_replace(' ', '_', $schedule->partner->name ?? 'partner'),
+            \Carbon\Carbon::parse($schedule->started_date)->format('Ymd')
         );
 
         return $pdf->download($filename);

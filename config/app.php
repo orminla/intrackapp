@@ -143,7 +143,7 @@ return [
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
 
-        // ✅ App Service Providers
+        // App Service Providers
         App\Providers\AuthServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
     ],
