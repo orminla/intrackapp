@@ -122,14 +122,14 @@ class AdminController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Data admin pending berhasil dibuat. Silakan verifikasi email.',
+                'message' => 'Admin berhasil ditambahkan. Menunggu verifikasi akun.',
                 'verifikasi_link' => $verifLink,
             ], 201);
         }
 
         // Jika request Web
         return redirect()->back()->with([
-            'success' => 'Admin berhasil ditambahkan. Tunggu verifikasi email.',
+            'success' => 'Admin berhasil ditambahkan. Tunggu verifikasi akun.',
             'verifikasi_link' => $verifLink,
         ]);
     }

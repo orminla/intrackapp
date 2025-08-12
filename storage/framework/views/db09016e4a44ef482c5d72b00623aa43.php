@@ -1,16 +1,16 @@
-<!-- Modal Tambah Admin -->
+<!-- Modal Tambah Petugas -->
 <div
     class="modal fade"
-    id="tambahAdminModal"
+    id="tambahPetugasModal"
     tabindex="-1"
-    aria-labelledby="tambahAdminLabel"
+    aria-labelledby="tambahPetugasLabel"
     aria-hidden="true"
 >
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content rounded-4 p-3">
             <div class="modal-header border-0 pb-0">
-                <h4 class="modal-title fw-bold" id="tambahAdminLabel">
-                    Tambah Admin
+                <h4 class="modal-title fw-bold" id="tambahPetugasLabel">
+                    Tambah Petugas
                 </h4>
                 <button
                     type="button"
@@ -20,8 +20,8 @@
                 ></button>
             </div>
 
-            <form method="POST" action="{{ route("admin.pengaturan.store") }}">
-                @csrf
+            <form method="POST" action="<?php echo e(route("admin.petugas.store")); ?>">
+                <?php echo csrf_field(); ?>
                 <div class="modal-body pt-2 mt-2">
                     <!-- Nama & NIP -->
                     <div class="row g-3 mb-3">
@@ -50,17 +50,18 @@
                         <div class="col-md-6">
                             <label class="form-label">Bidang</label>
                             <select
-                                id="adminDepartmentSelect"
-                                name="department_id"
+                                id="departmentSelect"
                                 class="form-select rounded-2 bg-white"
+                                name="department_id"
                                 required
                             >
                                 <option value="">Pilih Bidang</option>
-                                @foreach ($departments as $dept)
-                                    <option value="{{ $dept->department_id }}">
-                                        {{ $dept->name }}
+                                <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($dept->department_id); ?>">
+                                        <?php echo e($dept->name); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
@@ -68,20 +69,21 @@
                         <div class="col-md-6">
                             <label class="form-label">Portofolio</label>
                             <select
-                                id="adminPortfolioSelect"
-                                name="portfolio_id"
+                                id="portfolioSelect"
                                 class="form-select rounded-2 bg-white"
+                                name="portfolio_id"
                                 required
                             >
                                 <option value="">Pilih Portofolio</option>
-                                @foreach ($portfolios as $portfolio)
+                                <?php $__currentLoopData = $portfolios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $portfolio): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $portfolio->portfolio_id }}"
-                                        data-dept="{{ $portfolio->department_id }}"
+                                        value="<?php echo e($portfolio->portfolio_id); ?>"
+                                        data-dept="<?php echo e($portfolio->department_id); ?>"
                                     >
-                                        {{ $portfolio->name }}
+                                        <?php echo e($portfolio->name); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
@@ -122,82 +124,47 @@
     </div>
 </div>
 
+<!-- Script Filtering Portofolio, Reset Form & SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const modal = document.getElementById('tambahAdminModal');
-        if (!modal) return;
+        const tambahPetugasModal =
+            document.getElementById('tambahPetugasModal');
+        if (!tambahPetugasModal) return;
 
-        const form = modal.querySelector('form');
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const deptSelect = document.getElementById('adminDepartmentSelect');
-        const portfolioSelect = document.getElementById('adminPortfolioSelect');
-
-        // Simpan semua opsi portfolio untuk filter
+        const form = tambahPetugasModal.querySelector('form');
+        const deptSelect = document.getElementById('departmentSelect');
+        const portfolioSelect = document.getElementById('portfolioSelect');
         const allOptions = Array.from(portfolioSelect.options).filter(
             (o) => o.value !== '',
         );
 
-        function checkFormValidity() {
-            const requiredElements = form.querySelectorAll(
-                'input[required], select[required]',
-            );
-            for (const el of requiredElements) {
-                if (!el.value || el.value.trim() === '') return false;
-            }
-            return true;
-        }
-
-        function updateSubmitBtn() {
-            submitBtn.disabled = !checkFormValidity();
-        }
-
-        // Filter portofolio berdasarkan bidang
+        // Filter portfolio sesuai bidang
         deptSelect.addEventListener('change', function () {
             const selectedDept = this.value;
-            portfolioSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Pilih Portofolio';
-            portfolioSelect.appendChild(placeholder);
-
-            allOptions.forEach((opt) => {
-                if (opt.dataset.dept === selectedDept) {
-                    portfolioSelect.appendChild(opt);
+            portfolioSelect.innerHTML =
+                '<option value="">Pilih Portofolio</option>';
+            allOptions.forEach((option) => {
+                if (option.dataset.dept === selectedDept) {
+                    portfolioSelect.appendChild(option);
                 }
             });
-
-            updateSubmitBtn();
         });
 
-        // Update tombol submit saat input berubah
-        const requiredElements = form.querySelectorAll(
-            'input[required], select[required]',
-        );
-        requiredElements.forEach((el) => {
-            el.addEventListener('input', updateSubmitBtn);
-            el.addEventListener('change', updateSubmitBtn);
-        });
-
-        // Reset form dan portfolio saat modal ditutup
-        modal.addEventListener('hidden.bs.modal', function () {
+        // Reset form saat modal tambah ditutup
+        tambahPetugasModal.addEventListener('hidden.bs.modal', function () {
             form.reset();
-            portfolioSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Pilih Portofolio';
-            portfolioSelect.appendChild(placeholder);
-            allOptions.forEach((opt) => portfolioSelect.appendChild(opt));
-            updateSubmitBtn();
-            location.reload();
+            portfolioSelect.innerHTML =
+                '<option value="">Pilih Portofolio</option>';
+            allOptions.forEach((option) => portfolioSelect.appendChild(option));
         });
 
-        submitBtn.disabled = true;
-
-        // AJAX Submit + SweetAlert
+        // Submit AJAX + SweetAlert
         form.addEventListener('submit', function (e) {
             e.preventDefault();
-            if (!checkFormValidity()) {
-                form.reportValidity();
+            if (!form.checkValidity()) {
+                form.reportValidity(); // trigger validasi bawaan browser
                 return;
             }
 
@@ -224,15 +191,16 @@
                         icon: 'success',
                         title: 'Berhasil!',
                         text:
-                            data.message || 'Data admin berhasil ditambahkan.',
-                        timer: 3000,
+                            data.message ||
+                            'Data petugas berhasil ditambahkan.',
+                        timer: 1500,
                         customClass: {
                             popup: 'rounded-4',
                             confirmButton: 'btn btn-primary rounded-2 px-4',
                         },
                         showConfirmButton: false,
                     });
-                    bootstrap.Modal.getInstance(modal).hide();
+                    bootstrap.Modal.getInstance(tambahPetugasModal).hide();
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
@@ -247,3 +215,4 @@
         });
     });
 </script>
+<?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/add_inspector_modal.blade.php ENDPATH**/ ?>

@@ -1,30 +1,31 @@
-{{-- Modal Edit per Admin --}}
-@foreach ($admins as $admin)
+
+<?php $__currentLoopData = $inspectors; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $inspector): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
     <div
         class="modal fade"
-        id="updateModal-{{ $admin["nip"] }}"
+        id="updateModal-<?php echo e($inspector["nip"]); ?>"
         tabindex="-1"
-        aria-labelledby="updateModalLabel-{{ $admin["nip"] }}"
+        aria-labelledby="updateModalLabel-<?php echo e($inspector["nip"]); ?>"
         aria-hidden="true"
     >
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content rounded-4 p-3">
                 <form
-                    action="{{ route("admin.pengaturan.update", $admin["nip"]) }}"
+                    action="<?php echo e(route("admin.petugas.update", $inspector["nip"])); ?>"
                     method="POST"
                 >
-                    @csrf
-                    @method("PUT")
+                    <?php echo csrf_field(); ?>
+                    <?php echo method_field("PUT"); ?>
 
                     <div
                         class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center"
                     >
                         <h4
                             class="modal-title fw-bold"
-                            id="updateModalLabel-{{ $admin["nip"] }}"
+                            id="updateModalLabel-<?php echo e($inspector["nip"]); ?>"
                         >
-                            Edit Data Admin
+                            Edit Data Petugas
                         </h4>
+
                         <div class="d-flex gap-2 align-items-center">
                             <button
                                 type="button"
@@ -43,7 +44,7 @@
                                     type="text"
                                     class="form-control"
                                     name="name"
-                                    value="{{ $admin["name"] }}"
+                                    value="<?php echo e($inspector["name"]); ?>"
                                     required
                                     disabled
                                 />
@@ -55,7 +56,7 @@
                                     type="text"
                                     class="form-control"
                                     name="nip"
-                                    value="{{ $admin["nip"] }}"
+                                    value="<?php echo e($inspector["nip"]); ?>"
                                     required
                                     disabled
                                 />
@@ -67,7 +68,7 @@
                                     type="email"
                                     class="form-control"
                                     name="email"
-                                    value="{{ $admin["email"] }}"
+                                    value="<?php echo e($inspector["email"]); ?>"
                                     required
                                     disabled
                                 />
@@ -79,54 +80,57 @@
                                     type="text"
                                     class="form-control"
                                     name="phone_num"
-                                    value="{{ $admin["phone_num"] }}"
+                                    value="<?php echo e($inspector["phone_num"]); ?>"
                                     required
                                     disabled
                                 />
                             </div>
 
-                            {{-- Dropdown Departemen --}}
+                            
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Bidang</label>
                                 <select
                                     name="department_id"
                                     class="form-select department-select"
-                                    data-target="portfolio-select-{{ $admin["nip"] }}"
+                                    data-target="portfolio-select-<?php echo e($inspector["nip"]); ?>"
                                     required
                                     disabled
                                 >
-                                    @foreach ($departments as $dept)
+                                    <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <option
-                                            value="{{ $dept->department_id }}"
-                                            {{ $dept->name == $admin["department"] ? "selected" : "" }}
+                                            value="<?php echo e($dept->department_id); ?>"
+                                            <?php echo e($dept->name == $inspector["department"] ? "selected" : ""); ?>
+
                                         >
-                                            {{ $dept->name }}
+                                            <?php echo e($dept->name); ?>
+
                                         </option>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
 
-                            {{-- Dropdown Portofolio --}}
+                            
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Portofolio</label>
                                 <select
                                     name="portfolio_id"
-                                    id="portfolio-select-{{ $admin["nip"] }}"
+                                    id="portfolio-select-<?php echo e($inspector["nip"]); ?>"
                                     class="form-select portfolio-select"
                                     required
                                     disabled
                                 >
-                                    @foreach ($portfolios as $portfolio)
-                                        @if ($portfolio->department->name == $admin["department"])
+                                    <?php $__currentLoopData = $portfolios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $portfolio): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <?php if($portfolio->department->name == $inspector["department"]): ?>
                                             <option
-                                                value="{{ $portfolio->portfolio_id }}"
-                                                {{ $portfolio->portfolio_id == $admin["portfolio_id"] ? "selected" : "" }}
+                                                value="<?php echo e($portfolio->portfolio_id); ?>"
+                                                <?php echo e($portfolio->portfolio_id == $inspector["portfolio_id"] ? "selected" : ""); ?>
+
                                             >
-                                                {{ $portfolio->name }}
-                                                ({{ $portfolio->department->name }})
+                                                <?php echo e($portfolio->name); ?>
+
                                             </option>
-                                        @endif
-                                    @endforeach
+                                        <?php endif; ?>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                             </div>
                         </div>
@@ -137,7 +141,7 @@
                             <button
                                 type="button"
                                 class="btn btn-primary w-100"
-                                id="editSaveBtn-{{ $admin["nip"] }}"
+                                id="editSaveBtn-<?php echo e($inspector["nip"]); ?>"
                             >
                                 Edit Profil
                             </button>
@@ -147,13 +151,15 @@
             </div>
         </div>
     </div>
-@endforeach
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-@push("scripts")
+<?php $__env->startPush("scripts"); ?>
     <script>
-        const allPortfolios = @json($portfolios);
+        const allPortfolios = <?php echo json_encode($portfolios, 15, 512) ?>;
 
         document.addEventListener('DOMContentLoaded', () => {
+            const allPortfolios = <?php echo json_encode($portfolios, 15, 512) ?>;
+
             document.querySelectorAll('.modal').forEach((modalEdit) => {
                 if (!modalEdit.id.startsWith('updateModal-')) return;
 
@@ -165,7 +171,7 @@
 
                 btn?.addEventListener('click', () => {
                     if (!isEditing) {
-                        // Enable all inputs/selects for editing
+                        // Aktifkan semua input/select kecuali email & nip tetap disable jika mau
                         inputs.forEach((el) => {
                             el.removeAttribute('disabled');
                         });
@@ -206,7 +212,7 @@
                                     title: 'Berhasil!',
                                     text:
                                         data.message ||
-                                        'Data admin berhasil diperbarui.',
+                                        'Data petugas berhasil diperbarui.',
                                     timer: 1500,
                                     showConfirmButton: false,
                                     customClass: {
@@ -217,16 +223,24 @@
                                     buttonsStyling: false,
                                 });
 
+                                window.location.reload();
+
                                 // Tutup modal otomatis
                                 const modalInstance =
                                     bootstrap.Modal.getInstance(modalEdit);
                                 if (modalInstance) modalInstance.hide();
 
-                                // Reload halaman setelah modal tertutup
-                                setTimeout(
-                                    () => window.location.reload(),
-                                    1600,
+                                // Disable input kembali
+                                inputs.forEach((el) => {
+                                    el.setAttribute('disabled', true);
+                                });
+
+                                btn.textContent = 'Edit Profil';
+                                btn.classList.replace(
+                                    'btn-success',
+                                    'btn-primary',
                                 );
+                                isEditing = false;
                             })
                             .catch((error) => {
                                 Swal.fire({
@@ -247,7 +261,7 @@
                     }
                 });
 
-                // Dropdown dinamis Bidang -> Portofolio
+                // Dropdown dinamis untuk Bidang -> Portofolio
                 modalEdit
                     .querySelectorAll('.department-select')
                     .forEach((select) => {
@@ -287,4 +301,5 @@
             });
         });
     </script>
-@endpush
+<?php $__env->stopPush(); ?>
+<?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/edit_inspector_modal.blade.php ENDPATH**/ ?>

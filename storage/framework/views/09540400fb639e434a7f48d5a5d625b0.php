@@ -20,8 +20,8 @@
                 ></button>
             </div>
 
-            <form method="POST" action="{{ route("admin.pengaturan.store") }}">
-                @csrf
+            <form method="POST" action="<?php echo e(route("admin.pengaturan.store")); ?>">
+                <?php echo csrf_field(); ?>
                 <div class="modal-body pt-2 mt-2">
                     <!-- Nama & NIP -->
                     <div class="row g-3 mb-3">
@@ -56,11 +56,12 @@
                                 required
                             >
                                 <option value="">Pilih Bidang</option>
-                                @foreach ($departments as $dept)
-                                    <option value="{{ $dept->department_id }}">
-                                        {{ $dept->name }}
+                                <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($dept->department_id); ?>">
+                                        <?php echo e($dept->name); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
@@ -74,14 +75,15 @@
                                 required
                             >
                                 <option value="">Pilih Portofolio</option>
-                                @foreach ($portfolios as $portfolio)
+                                <?php $__currentLoopData = $portfolios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $portfolio): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
-                                        value="{{ $portfolio->portfolio_id }}"
-                                        data-dept="{{ $portfolio->department_id }}"
+                                        value="<?php echo e($portfolio->portfolio_id); ?>"
+                                        data-dept="<?php echo e($portfolio->department_id); ?>"
                                     >
-                                        {{ $portfolio->name }}
+                                        <?php echo e($portfolio->name); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
 
@@ -247,3 +249,4 @@
         });
     });
 </script>
+<?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/add_admin_modal.blade.php ENDPATH**/ ?>

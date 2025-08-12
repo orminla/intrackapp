@@ -1,8 +1,8 @@
-@extends("admin.layouts.app")
 
-@section("title", "Pengaturan")
 
-@section("content")
+<?php $__env->startSection("title", "Pengaturan"); ?>
+
+<?php $__env->startSection("content"); ?>
     <div class="row d-flex align-items-stretch">
         <!-- Data Admin -->
         <div class="col-12 mb-2">
@@ -107,32 +107,37 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($admins as $index => $admin)
+                                <?php $__currentLoopData = $admins; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $admin): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <tr>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $index + 1 }}
+                                            <?php echo e($index + 1); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $admin["nip"] }}
+                                            <?php echo e($admin["nip"]); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $admin["name"] }}
+                                            <?php echo e($admin["name"]); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $admin["department"] ?? "-" }}
+                                            <?php echo e($admin["department"] ?? "-"); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            {{ $admin["portfolio"] ?? "-" }}
+                                            <?php echo e($admin["portfolio"] ?? "-"); ?>
+
                                         </td>
                                         <td
                                             class="px-0 text-center align-middle"
@@ -141,7 +146,7 @@
                                             <button
                                                 class="btn btn-sm px-1 border-0 bg-transparent"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#updateModal-{{ $admin["nip"] }}"
+                                                data-bs-target="#updateModal-<?php echo e($admin["nip"]); ?>"
                                                 data-bs-title="Lihat & Ubah"
                                             >
                                                 <i
@@ -150,19 +155,19 @@
                                             </button>
 
                                             <!-- Delete -->
-                                            @php
+                                            <?php
                                                 $isOnlyOne = count($admins) <= 1;
-                                            @endphp
+                                            ?>
 
-                                            @if (! $isOnlyOne)
+                                            <?php if(! $isOnlyOne): ?>
                                                 <form
                                                     method="POST"
-                                                    action="{{ route("admin.pengaturan.destroy", $admin["admin_id"]) }}"
+                                                    action="<?php echo e(route("admin.pengaturan.destroy", $admin["admin_id"])); ?>"
                                                     class="d-inline delete-form"
                                                     onsubmit="event.preventDefault(); confirmDelete(this)"
                                                 >
-                                                    @csrf
-                                                    @method("DELETE")
+                                                    <?php echo csrf_field(); ?>
+                                                    <?php echo method_field("DELETE"); ?>
                                                     <button
                                                         type="submit"
                                                         class="btn btn-sm px-1 border-0 bg-transparent"
@@ -174,38 +179,38 @@
                                                         ></i>
                                                     </button>
                                                 </form>
-                                            @endif
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                @include("admin.add_admin_modal")
-                @include("admin.edit_admin_modal")
+                <?php echo $__env->make("admin.add_admin_modal", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                <?php echo $__env->make("admin.edit_admin_modal", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <!-- Modal untuk update -->
             </div>
         </div>
     </div>
 
-    @if (session("success"))
+    <?php if(session("success")): ?>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>
             Swal.fire({
                 icon: 'success',
                 title: 'Berhasil!',
-                text: '{{ session("success") }}',
+                text: '<?php echo e(session("success")); ?>',
                 confirmButtonText: 'OK',
             }).then(() => {
-                location.href = '{{ route("admin.pengaturan.index") }}';
+                location.href = '<?php echo e(route("admin.pengaturan.index")); ?>';
             });
         </script>
-    @endif
-@endsection
+    <?php endif; ?>
+<?php $__env->stopSection(); ?>
 
-@push("scripts")
+<?php $__env->startPush("scripts"); ?>
     <script>
         function showEditAdminModal(nip) {
             // Ambil data dari API
@@ -301,4 +306,6 @@
             });
         }
     </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make("admin.layouts.app", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/settings.blade.php ENDPATH**/ ?>
