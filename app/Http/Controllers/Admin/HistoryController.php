@@ -11,6 +11,8 @@ use App\Models\Inspector;
 use App\Models\Document;
 use Illuminate\Support\Facades\Storage;
 use PDF;
+use Imagick;
+use setasign\Fpdi\Fpdi;
 
 class HistoryController extends Controller
 {
@@ -93,7 +95,7 @@ class HistoryController extends Controller
     {
         $report = Report::with([
             'schedule.partner',
-            'schedule.inspector.portfolio.department', // perbaiki ejaan
+            'schedule.inspector.portfolio.department',
             'schedule.product',
             'schedule.selectedDetails',
             'documents'
@@ -101,21 +103,30 @@ class HistoryController extends Controller
 
         $schedule = $report->schedule;
 
-        $data = [
+        // Ambil daftar nama dokumen saja
+        $documents = $report->documents->map(function ($doc) {
+            return [
+                'name' => $doc->original_name,
+            ];
+        })->toArray();
+
+        // Buat PDF dari Blade view
+        $pdf = PDF::setOptions([
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+        ])->loadView('report_pdf', [
             'report'        => $report,
             'schedule'      => $schedule,
             'partner'       => optional($schedule->partner),
             'inspector'     => optional($schedule->inspector),
-            'department'    => optional($schedule->inspector->portfolio->department)->name,
-            'portofolio'    => optional($schedule->inspector->portfolio)->name,
+            'department'    => optional($schedule->inspector->portfolio->department)->name ?? '-',
+            'portofolio'    => optional($schedule->inspector->portfolio)->name ?? '-',
             'product'       => $schedule->product,
             'details'       => $schedule->selectedDetails,
-            'documents'     => $report->documents,
+            'documents'     => $documents, // hanya nama file
             'started_date'  => $schedule->started_date,
             'finished_date' => $report->finished_date ?? $schedule->finished_date,
-        ];
-
-        $pdf = PDF::loadView('report_pdf', $data);
+        ]);
 
         $filename = sprintf(
             "Bukti_Inspeksi_%s_%s.pdf",

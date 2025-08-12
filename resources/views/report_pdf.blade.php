@@ -29,7 +29,6 @@
                 color: #fff;
                 font-weight: bold;
                 text-transform: uppercase;
-                text-align: left;
             }
             ul {
                 margin: 5px 0;
@@ -41,20 +40,40 @@
                 margin-top: 20px;
                 color: #555;
             }
+            .lampiran-img {
+                max-width: 100%;
+                margin-top: 5px;
+                page-break-inside: avoid;
+            }
+            .lampiran-item {
+                margin-bottom: 15px;
+                page-break-inside: avoid;
+            }
         </style>
     </head>
     <body>
-        {{-- Judul Laporan --}}
+        {{-- Judul --}}
         <h2
             style="
                 text-align: center;
                 font-size: 24px;
-                margin-bottom: 20px;
                 color: #004a91;
+                margin-bottom: 0px;
             "
         >
             INSPECTION REPORT VALIDATION
         </h2>
+        <p
+            style="
+                text-align: center;
+                font-size: 18px;
+                margin-top: 0;
+                margin-bottom: 36px;
+                color: #004a91;
+            "
+        >
+            PT SUCOFINDO Cabang Pontianak
+        </p>
 
         {{-- Informasi Inspeksi --}}
         <table>
@@ -63,15 +82,15 @@
             </tr>
             <tr>
                 <td>Mitra</td>
-                <td>{{ $partner->name }}</td>
+                <td>{{ $partner->name ?? "-" }}</td>
             </tr>
             <tr>
                 <td>Alamat</td>
-                <td>{{ $partner->address }}</td>
+                <td>{{ $partner->address ?? "-" }}</td>
             </tr>
             <tr>
                 <td>Petugas</td>
-                <td>{{ $inspector->name }}</td>
+                <td>{{ $inspector->name ?? "-" }}</td>
             </tr>
             <tr>
                 <td>Bidang</td>
@@ -84,7 +103,7 @@
             <tr>
                 <td>Tanggal Mulai</td>
                 <td>
-                    {{ \Carbon\Carbon::parse($started_date)->translatedFormat("l, d-m-Y") }}
+                    {{ $started_date ? \Carbon\Carbon::parse($started_date)->translatedFormat("l, d-m-Y") : "-" }}
                 </td>
             </tr>
             <tr>
@@ -93,10 +112,9 @@
                     {{ $finished_date ? \Carbon\Carbon::parse($finished_date)->translatedFormat("l, d-m-Y") : "-" }}
                 </td>
             </tr>
-
             <tr>
                 <td>Produk</td>
-                <td>{{ $product->name }}</td>
+                <td>{{ $product->name ?? "-" }}</td>
             </tr>
         </table>
 
@@ -105,36 +123,34 @@
             <tr>
                 <td class="table-title">Detail Produk</td>
             </tr>
-            <tr>
-                <td>
-                    <ul>
-                        @foreach ($details as $detail)
-                            <li>{{ $detail->name }}</li>
-                        @endforeach
-                    </ul>
-                </td>
-            </tr>
+            @if (! empty($details) && count($details) > 0)
+                @foreach ($details as $detail)
+                    <tr>
+                        <td>{{ $detail->name ?? "-" }}</td>
+                    </tr>
+                @endforeach
+            @else
+                <tr>
+                    <td><em>Tidak ada detail produk</em></td>
+                </tr>
+            @endif
         </table>
 
         {{-- Lampiran --}}
-        @if ($documents->count() > 0)
+        @if (count($documents) > 0)
             <table>
                 <tr>
                     <td class="table-title">Lampiran Dokumen</td>
                 </tr>
-                <tr>
-                    <td>
-                        <ul>
-                            @foreach ($documents as $doc)
-                                <li>{{ $doc->original_name }}</li>
-                            @endforeach
-                        </ul>
-                    </td>
-                </tr>
+                @foreach ($documents as $doc)
+                    <tr>
+                        <td>{{ $doc["name"] }}</td>
+                    </tr>
+                @endforeach
             </table>
         @endif
 
-        {{-- Keterangan Verifikasi --}}
+        {{-- Keterangan --}}
         <div
             style="
                 margin-top: 15px;
