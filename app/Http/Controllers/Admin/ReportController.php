@@ -12,15 +12,10 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
-    /**
-     * Menampilkan daftar laporan inspeksi
-     * Hanya bisa diakses oleh admin
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        // Hanya admin yang diizinkan
         if ($user->role !== 'admin') {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -28,11 +23,12 @@ class ReportController extends Controller
                     'message' => 'Hanya admin yang dapat mengakses data laporan.'
                 ], 403);
             }
-
             abort(403, 'Hanya admin yang dapat mengakses halaman ini.');
         }
 
-        $reports = Report::whereIn('status', ['Menunggu konfirmasi', 'Ditolak'])
+        $search = $request->input('search'); // 🔹 ambil keyword pencarian
+
+        $reportsQuery = Report::whereIn('status', ['Menunggu konfirmasi', 'Ditolak'])
             ->whereHas('schedule', function ($query) {
                 $query->where('status', 'Dalam proses');
             })
@@ -45,11 +41,28 @@ class ReportController extends Controller
                         ->with('portfolio:portfolio_id,name');
                 },
                 'documents:doc_id,report_id,original_name,file_path'
-            ])
-            ->get();
+            ]);
 
+        // 🔹 Tambahkan filter search
+        if (!empty($search)) {
+            $reportsQuery->where(function ($q) use ($search) {
+                $q->whereHas('schedule.partner', function ($partnerQ) use ($search) {
+                    $partnerQ->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('schedule.inspector', function ($inspectorQ) use ($search) {
+                        $inspectorQ->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('schedule.product', function ($productQ) use ($search) {
+                        $productQ->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('status', 'like', "%{$search}%");
+            });
+        }
 
-        // Format data
+        $reports = $reportsQuery->get();
+
+        // 🔹 Format data
         $data = $reports->map(function ($report) {
             $alamat = optional($report->schedule->partner)->address ?? '-';
             $parts = explode(',', $alamat);
@@ -65,8 +78,6 @@ class ReportController extends Controller
                 'petugas'       => optional($report->schedule->inspector)->name ?? '-',
                 'portofolio'    => optional(optional($report->schedule->inspector)->portfolio)->name ?? '-',
                 'status'        => $report->status,
-
-                // Data tambahan untuk modal detail
                 'detail' => [
                     'mitra'           => optional($report->schedule->partner)->name ?? '-',
                     'lokasi'          => $alamat,
@@ -76,9 +87,9 @@ class ReportController extends Controller
                     'detail_produk'   => $report->schedule->selectedDetails->pluck('name')->toArray(),
                     'petugas'         => optional($report->schedule->inspector)->name ?? '-',
                     'bidang'          => optional(optional($report->schedule->inspector)->portfolio)->name ?? '-',
-                    'dokumen' => $report->documents->map(function ($doc) {
+                    'dokumen'         => $report->documents->map(function ($doc) {
                         return [
-                            'id' => $doc->doc_id,
+                            'id'   => $doc->doc_id,
                             'name' => $doc->original_name,
                             'path' => $doc->file_path,
                         ];
@@ -95,7 +106,10 @@ class ReportController extends Controller
             ]);
         }
 
-        return view('admin.inspection_reports', ['data' => $data]);
+        return view('admin.inspection_reports', [
+            'data' => $data,
+            'search' => $search // 🔹 biar form search bisa tetap ada nilai
+        ]);
     }
 
     protected function sendNotifLaporan($inspector, $schedule, bool $approved)

@@ -14,7 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf as DomPdfFacade;
 
 class HistoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
@@ -22,12 +22,25 @@ class HistoryController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        $schedules = Schedule::with(['partner', 'product', 'report.documents', 'selectedDetails', 'inspector'])
+        $query = Schedule::with(['partner', 'product', 'report.documents', 'selectedDetails', 'inspector'])
             ->where('status', 'selesai')
-            ->whereHas('report', function ($query) {
-                $query->where('status', 'Disetujui');
-            })
-            ->paginate(10); // sesuaikan default halaman dan jumlahnya
+            ->whereHas('report', function ($q) {
+                $q->where('status', 'Disetujui');
+            });
+
+        // Filter search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('partner', fn($sub) => $sub->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('product', fn($sub) => $sub->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('inspector', fn($sub) => $sub->where('name', 'like', "%{$search}%"))
+                    ->orWhere('started_date', 'like', "%{$search}%")
+                    ->orWhere('finished_date', 'like', "%{$search}%");
+            });
+        }
+
+        $schedules = $query->paginate(10);
 
         $histories = $schedules->through(function ($schedule) {
             $alamat = $schedule->partner->address ?? '-';
@@ -58,6 +71,7 @@ class HistoryController extends Controller
             'histories' => $histories,
         ]);
     }
+
 
     public function show($id)
     {

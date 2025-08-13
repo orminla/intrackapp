@@ -77,31 +77,15 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'errors' => $validator->errors()], 422)
-                : back()->withErrors($validator)->withInput();
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            }
+            return back()->withErrors($validator)->withInput();
         }
 
         $validated = $validator->validated();
 
-        // Handle upload foto baru
-        // if ($request->hasFile('photo_url')) {
-        //     // Hapus file lama jika ada
-        //     if ($user->photo_url && Storage::disk('public')->exists(str_replace('storage/', '', $user->photo_url))) {
-        //         Storage::disk('public')->delete(str_replace('storage/', '', $user->photo_url));
-        //     }
-
-        //     $file = $request->file('photo_url');
-        //     $extension = $file->getClientOriginalExtension();
-        //     $filename = 'profile_' . Str::slug($user->name) . '_' . time() . '.' . $extension;
-        //     $path = $file->storeAs('profile_photos', $filename, 'public');
-
-        //     $validated['photo_url'] = 'storage/' . $path;
-        // }
-
-        // Handle upload foto baru
         if ($request->hasFile('photo_url')) {
-            // Hapus file lama jika ada
             if ($user->photo_url) {
                 $oldPath = str_replace(asset('storage') . '/', '', $user->photo_url);
                 if (Storage::disk('public')->exists($oldPath)) {
@@ -110,21 +94,17 @@ class ProfileController extends Controller
             }
             $file = $request->file('photo_url');
             $extension = $file->getClientOriginalExtension();
-            // Simpan langsung ke public/storage/profile_photos
             $filename = 'profile_' . Str::slug($user->name) . '_' . time() . '.' . $extension;
             $path = $file->move(public_path('storage/profile_photos'), $filename);
 
-            // Simpan path-nya langsung pakai asset() untuk URL
             $validated['photo_url'] = asset('storage/profile_photos/' . $filename);
         }
 
-        // Update ke tabel users
         $user->fill([
             'email'     => $validated['email']     ?? $user->email,
             'photo_url' => $validated['photo_url'] ?? $user->photo_url,
         ])->save();
 
-        // Update ke admin/inspector
         if ($user->role === 'admin' && $user->admin) {
             $user->admin->fill([
                 'name'      => $validated['name']      ?? $user->admin->name,
@@ -137,27 +117,51 @@ class ProfileController extends Controller
             ])->save();
         }
 
-        return $request->expectsJson()
-            ? response()->json(['success' => true, 'message' => 'Profil berhasil diperbarui'])
-            : back()->with('success', 'Profil berhasil diperbarui');
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Profil berhasil diperbarui']);
+        }
+
+        return back()->with('success', 'Profil berhasil diperbarui');
     }
 
     public function changePassword(Request $request)
     {
-        $request->validate([
+        $user = Auth::user();
+
+        if (!$user) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Unauthenticated'], 401)
+                : redirect()->route('login');
+        }
+
+        $validator = Validator::make($request->all(), [
             'current_password' => 'required',
             'new_password' => 'required|string|min:6|confirmed',
         ]);
 
-        if (!Hash::check($request->current_password, Auth::user()->password)) {
+        if ($validator->fails()) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+            }
+            return back()->withErrors($validator)->withInput();
+        }
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => ['current_password' => ['Password lama salah.']]], 422);
+            }
             return back()->withErrors(['current_password' => 'Password lama salah.'])->withInput();
         }
 
-        Auth::user()->update([
+        $user->update([
             'password' => Hash::make($request->new_password),
         ]);
 
         Auth::logout();
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Password berhasil diperbarui']);
+        }
 
         return back()->with('success', 'Password berhasil diperbarui.');
     }

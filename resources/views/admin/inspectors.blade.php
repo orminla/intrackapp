@@ -3,7 +3,7 @@
 @section("title", "Petugas")
 
 @php
-    $showingSelected = request()->get("showing", "10");
+    $showingSelected = request()->get("showing", "");
     $filterSelected = request()->get("filter", "all");
 @endphp
 

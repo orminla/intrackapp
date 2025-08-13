@@ -29,34 +29,52 @@ class InspectorController extends Controller
 
         $showing = (int) $request->input('showing', 10);
         $filter  = $request->input('filter', 'all');
+        $search  = $request->input('search'); // 🔹 ambil keyword pencarian
         $currentPage = (int) $request->query('page', 1);
 
         $query = Inspector::with(['portfolio.department', 'schedules.report'])
             ->orderBy('name');
 
+        // 🔹 filter status jika ada
         if ($filter !== 'all') {
             $query->whereHas('schedules', function ($q) use ($filter) {
                 $q->where('status', $filter);
             });
         }
 
+        // 🔹 filter pencarian jika ada
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhere('phone_num', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('portfolio', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('portfolio.department', function ($dq) use ($search) {
+                        $dq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         // Hitung total data
         $totalData = $query->count();
 
-        // Kalau showing > total data, sesuaikan
         if ($totalData < $showing) {
             $showing = $totalData > 0 ? $totalData : 1;
         }
 
-        // Kalau offset halaman sekarang melebihi total data, reset ke page 1
         if (($currentPage - 1) * $showing >= $totalData) {
             $currentPage = 1;
         }
 
-        // Ambil data dengan pagination
+        // Pagination
         $inspectors = $query->paginate($showing, ['*'], 'page', $currentPage);
 
-        // Map data untuk menambahkan kolom tambahan
+        // Map data
         $formatted = $inspectors->getCollection()->map(function ($inspector) {
             $schedules = $inspector->schedules;
 
@@ -88,7 +106,6 @@ class InspectorController extends Controller
             ];
         });
 
-        // Bungkus lagi ke paginator supaya pagination tetap jalan
         $inspectorsFormatted = new \Illuminate\Pagination\LengthAwarePaginator(
             $formatted,
             $inspectors->total(),
@@ -104,6 +121,7 @@ class InspectorController extends Controller
             'inspectors'  => $inspectorsFormatted,
             'departments' => Department::all(),
             'portfolios'  => Portfolio::with('department')->get(),
+            'search'      => $search, // 🔹 biar bisa ditampilkan di input search di view
         ]);
     }
 

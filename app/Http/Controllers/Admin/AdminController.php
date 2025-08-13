@@ -24,8 +24,29 @@ class AdminController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        // Ambil semua admin beserta relasi user & portfolio -> department
-        $admins = Admin::with(['user', 'portfolio.department'])->get();
+        $search = $request->input('search');
+
+        $query = Admin::with(['user', 'portfolio.department']);
+
+        // Filter jika ada keyword search
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%") // Nama
+                    ->orWhere('nip', 'like', "%{$search}%") // NIP
+                    ->orWhere('phone_num', 'like', "%{$search}%") // Nomor HP
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('email', 'like', "%{$search}%"); // Email
+                    })
+                    ->orWhereHas('portfolio', function ($p) use ($search) {
+                        $p->where('name', 'like', "%{$search}%") // Bidang / Portfolio
+                            ->orWhereHas('department', function ($d) use ($search) {
+                                $d->where('name', 'like', "%{$search}%"); // Departemen
+                            });
+                    });
+            });
+        }
+
+        $admins = $query->get();
 
         $formatted = $admins->map(function ($admin) {
             return [
@@ -40,7 +61,6 @@ class AdminController extends Controller
             ];
         });
 
-        // Jika request API
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -48,7 +68,6 @@ class AdminController extends Controller
             ]);
         }
 
-        // Untuk tampilan web
         $departments = Department::all();
         $portfolios = Portfolio::with('department')->get();
 
@@ -56,6 +75,7 @@ class AdminController extends Controller
             'admins' => $formatted,
             'departments' => $departments,
             'portfolios' => $portfolios,
+            'search' => $search, // biar bisa isi kembali di form
         ]);
     }
 

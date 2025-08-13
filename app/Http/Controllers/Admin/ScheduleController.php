@@ -98,30 +98,52 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
-        // Jadwal inspeksi filter dan showing
+        // Jadwal inspeksi filter, showing, dan search
         $filter = $request->get('filter', 'all');
         $showing = (int) $request->get('showing', 10);
+        $search = $request->get('search', null); // 🔹 tambahan
 
-        // Permintaan ganti petugas filter dan showing (parameter baru)
+        // Permintaan ganti petugas filter, showing, dan search (parameter baru)
         $filterChange = $request->get('filter_change', 'all');
         $showingChange = (int) $request->get('showing_change', 10);
+        $searchChange = $request->get('search_change', null); // 🔹 tambahan
 
-        // Query jadwal inspeksi (sama seperti sekarang)
+        // Query jadwal inspeksi
         $query = Schedule::with([
             'product:product_id,name',
             'selectedDetails:detail_id,name',
             'partner:partner_id,name,address',
             'inspector' => function ($q) {
-                $q->select('inspector_id', 'name', 'portfolio_id')->with('portfolio:portfolio_id,name');
+                $q->select('inspector_id', 'name', 'portfolio_id')
+                    ->with('portfolio:portfolio_id,name');
             }
         ]);
 
+        // Filter status
         if ($filter !== 'all') {
             $query->where('status', $filter);
         } else {
             $query->whereIn('status', ['Dalam proses', 'Menunggu konfirmasi', 'Dijadwalkan ganti']);
         }
 
+        // 🔹 Filter search jadwal inspeksi
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('partner', function ($partnerQ) use ($search) {
+                    $partnerQ->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('inspector', function ($inspectorQ) use ($search) {
+                        $inspectorQ->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('product', function ($productQ) use ($search) {
+                        $productQ->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('status', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter role inspector/petugas
         if ($user->role === 'inspector' || $user->role === 'petugas') {
             $inspectorId = optional($user->inspector)->inspector_id;
             if (!$inspectorId) abort(403, 'Akun Anda tidak terkait dengan data petugas.');
@@ -131,6 +153,7 @@ class ScheduleController extends Controller
         $query->orderBy('started_date', 'asc');
         $schedules = $query->paginate($showing)->withQueryString();
 
+        // Transformasi data
         $data = $schedules->getCollection()->transform(function ($schedule) {
             $detailProdukList = $schedule->selectedDetails->pluck('name')->toArray();
 
@@ -148,8 +171,8 @@ class ScheduleController extends Controller
         });
         $schedules->setCollection($data);
 
-        // Ambil data permintaan ganti petugas dengan filter dan showing khusus
-        $changeRequests = $this->changeReq($request, true, $filterChange, $showingChange);
+        // 🔹 Search juga di permintaan ganti petugas
+        $changeRequests = $this->changeReq($request, true, $filterChange, $showingChange, $searchChange);
 
         // Data pendukung lain
         $partners = Partner::select('partner_id', 'name', 'address')->get();
@@ -179,10 +202,10 @@ class ScheduleController extends Controller
             'produkList' => $produkList,
             'showingSelected' => $showing,
             'filterSelected' => $filter,
-
-            // Kirim juga parameter filter/ showing untuk permintaan ganti petugas
+            'search' => $search, // 🔹 supaya search bar tetap isi
             'showingChangeSelected' => $showingChange,
             'filterChangeSelected' => $filterChange,
+            'searchChange' => $searchChange, // 🔹 supaya search bar change tetap isi
         ]);
     }
 

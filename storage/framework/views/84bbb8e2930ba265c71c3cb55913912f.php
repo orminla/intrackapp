@@ -82,6 +82,7 @@
 
 <!-- Iconify (Web Component) -->
 <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -95,12 +96,22 @@
             const confirmPassword = formData.get('password_confirmation');
 
             if (!password || password.length < 6) {
-                alert('Password minimal 6 karakter.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Oops...',
+                    text: 'Password minimal 6 karakter.',
+                    confirmButtonColor: '#3085d6',
+                });
                 return;
             }
 
             if (password !== confirmPassword) {
-                alert('Konfirmasi password tidak cocok.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: 'Konfirmasi password tidak cocok.',
+                    confirmButtonColor: '#d33',
+                });
                 return;
             }
 
@@ -122,15 +133,32 @@
                             bootstrap.Modal.getInstance(resetModalEl);
                         resetModal.hide();
 
-                        alert('Password berhasil diubah. Silakan login.');
-                        window.location.href = '/login';
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: 'Password berhasil diubah. Silakan login.',
+                            showConfirmButton: false,
+                            timer: 2000,
+                        }).then(() => {
+                            window.location.href = '/login';
+                        });
                     } else {
-                        alert(data.message || 'Gagal reset password.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: data.message || 'Gagal reset password.',
+                            confirmButtonColor: '#d33',
+                        });
                     }
                 })
                 .catch((err) => {
                     console.error(err);
-                    alert('Terjadi kesalahan saat reset password.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan saat reset password.',
+                        confirmButtonColor: '#d33',
+                    });
                 });
         });
 

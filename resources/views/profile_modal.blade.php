@@ -10,6 +10,11 @@
             max-width: 480px;
         }
     }
+
+    #resetPasswordModal .input-group > input.form-control,
+    #resetPasswordModal .input-group > button {
+        border-radius: 0.375rem;
+    }
 </style>
 
 <!-- Modal Profil -->
@@ -113,11 +118,7 @@
 >
     <div class="modal-dialog modal-dialog-centered custom-modal-width">
         <div class="modal-content rounded-4 p-3">
-            <form
-                method="POST"
-                action="{{ route("profile.update", auth()->id()) }}"
-                enctype="multipart/form-data"
-            >
+            <form id="formEditProfile" enctype="multipart/form-data">
                 @csrf
                 @method("PUT")
 
@@ -151,12 +152,10 @@
                             type="text"
                             name="name"
                             id="name"
-                            class="form-control @error("name") is-invalid @enderror"
+                            class="form-control"
                             value="{{ old("name", $profile["name"] ?? "") }}"
                         />
-                        @error("name")
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                        <div class="invalid-feedback" id="error-name"></div>
                     </div>
 
                     <div class="mb-3">
@@ -165,12 +164,10 @@
                             type="email"
                             name="email"
                             id="email"
-                            class="form-control @error("email") is-invalid @enderror"
+                            class="form-control"
                             value="{{ old("email", $profile["email"] ?? "") }}"
                         />
-                        @error("email")
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                        <div class="invalid-feedback" id="error-email"></div>
                     </div>
 
                     <div class="mb-3">
@@ -181,12 +178,13 @@
                             type="text"
                             name="phone_num"
                             id="phone_num"
-                            class="form-control @error("phone_num") is-invalid @enderror"
+                            class="form-control"
                             value="{{ old("phone_num", $profile["phone_num"] ?? "") }}"
                         />
-                        @error("phone_num")
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                        <div
+                            class="invalid-feedback"
+                            id="error-phone_num"
+                        ></div>
                     </div>
 
                     <div class="mb-3">
@@ -198,12 +196,13 @@
                             name="photo_url"
                             id="photo_url"
                             accept="image/*"
-                            class="form-control @error("photo_url") is-invalid @enderror"
+                            class="form-control"
                             onchange="previewPhoto(event)"
                         />
-                        @error("photo_url")
-                            <small class="text-danger">{{ $message }}</small>
-                        @enderror
+                        <div
+                            class="invalid-feedback"
+                            id="error-photo_url"
+                        ></div>
                     </div>
                 </div>
 
@@ -244,49 +243,115 @@
             </div>
 
             <form
+                id="formChangePassword"
                 action="{{ route("profile.change-password") }}"
                 method="POST"
             >
                 @csrf
                 <div class="modal-body px-4 py-3">
-                    <div class="mb-3">
+                    <!-- Password Lama -->
+                    <div class="mb-3 position-relative">
                         <label for="current_password" class="form-label">
                             Password Lama
                         </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="current_password"
-                            name="current_password"
-                            required
-                        />
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="current_password"
+                                name="current_password"
+                                required
+                                autocomplete="current-password"
+                            />
+                            <button
+                                type="button"
+                                id="toggleCurrentPassword"
+                                tabindex="-1"
+                                aria-label="Toggle password visibility"
+                                style="
+                                    background: transparent !important;
+                                    border: none !important;
+                                    padding: 0 0.5rem;
+                                    margin-left: -2.5rem;
+                                    z-index: 2;
+                                    color: #0d6efd;
+                                    cursor: pointer;
+                                "
+                            >
+                                <i class="ti ti-eye"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="mb-3">
+
+                    <!-- Password Baru -->
+                    <div class="mb-3 position-relative">
                         <label for="new_password" class="form-label">
                             Password Baru
                         </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="new_password"
-                            name="new_password"
-                            required
-                        />
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="new_password"
+                                name="new_password"
+                                required
+                                autocomplete="new-password"
+                            />
+                            <button
+                                type="button"
+                                id="toggleNewPassword"
+                                tabindex="-1"
+                                aria-label="Toggle password visibility"
+                                style="
+                                    background: transparent !important;
+                                    border: none !important;
+                                    padding: 0 0.5rem;
+                                    margin-left: -2.5rem;
+                                    z-index: 2;
+                                    color: #0d6efd;
+                                    cursor: pointer;
+                                "
+                            >
+                                <i class="ti ti-eye"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="mb-2">
+
+                    <!-- Konfirmasi Password Baru -->
+                    <div class="mb-2 position-relative">
                         <label
                             for="new_password_confirmation"
                             class="form-label"
                         >
                             Konfirmasi Password Baru
                         </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="new_password_confirmation"
-                            name="new_password_confirmation"
-                            required
-                        />
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="new_password_confirmation"
+                                name="new_password_confirmation"
+                                required
+                                autocomplete="new-password"
+                            />
+                            <button
+                                type="button"
+                                id="toggleConfirmPassword"
+                                tabindex="-1"
+                                aria-label="Toggle password visibility"
+                                style="
+                                    background: transparent !important;
+                                    border: none !important;
+                                    padding: 0 0.5rem;
+                                    margin-left: -2.5rem;
+                                    z-index: 2;
+                                    color: #0d6efd;
+                                    cursor: pointer;
+                                "
+                            >
+                                <i class="ti ti-eye"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -301,6 +366,7 @@
 </div>
 
 <script>
+    // Preview photo upload
     function previewPhoto(event) {
         const input = event.target;
         const preview = document.getElementById('photoPreview');
@@ -313,19 +379,214 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
-</script>
 
-<script>
-    function previewPhoto(event) {
-        const input = event.target;
-        const preview = document.getElementById('photoPreview');
+    // Reset validation error UI
+    function resetValidationErrors(formId) {
+        const form = document.getElementById(formId);
+        form.querySelectorAll('.is-invalid').forEach((el) =>
+            el.classList.remove('is-invalid'),
+        );
+        form.querySelectorAll('.invalid-feedback').forEach(
+            (el) => (el.textContent = ''),
+        );
+    }
 
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                preview.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
+    // Show validation errors
+    function showValidationErrors(errors, formId) {
+        for (const [key, messages] of Object.entries(errors)) {
+            const input = document.querySelector(`#${formId} [name="${key}"]`);
+            const errorDiv = document.getElementById(`error-${key}`);
+            if (input) {
+                input.classList.add('is-invalid');
+                if (errorDiv) errorDiv.textContent = messages.join(', ');
+            }
         }
     }
+
+    // AJAX submit edit profile
+    document
+        .getElementById('formEditProfile')
+        .addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            resetValidationErrors('formEditProfile');
+
+            const formData = new FormData(this);
+
+            fetch('{{ route("profile.update", auth()->id()) }}', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                },
+                body: formData,
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        // Tutup modal dulu
+                        const modalEl =
+                            document.getElementById('editProfileModal');
+                        const modalInstance =
+                            bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
+                        // Tampil popup sukses tanpa tombol konfirmasi, auto close 1.5s
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: data.message,
+                            showConfirmButton: false,
+                            timer: 1500,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'rounded-4',
+                            },
+                        });
+
+                        // Reload halaman setelah 1.5 detik (popup hilang)
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        if (data.errors) {
+                            showValidationErrors(
+                                data.errors,
+                                'formEditProfile',
+                            );
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: data.message || 'Terjadi kesalahan',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton:
+                                        'btn btn-primary rounded-2 px-4',
+                                },
+                                buttonsStyling: false,
+                            });
+                        }
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: 'Terjadi kesalahan saat mengirim data',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        buttonsStyling: false,
+                    });
+                });
+        });
+
+    // AJAX submit change password
+    document
+        .getElementById('formChangePassword')
+        .addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            resetValidationErrors('formChangePassword');
+
+            const formData = new FormData(this);
+
+            fetch('{{ route("profile.change-password") }}', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                },
+                body: formData,
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        // Tutup modal dulu
+                        const modalEl =
+                            document.getElementById('resetPasswordModal');
+                        const modalInstance =
+                            bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
+                        // Tampil popup sukses tanpa tombol konfirmasi, auto close 1.5s
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: data.message,
+                            showConfirmButton: false,
+                            timer: 1500,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'rounded-4',
+                            },
+                        });
+
+                        // Redirect ke login setelah 1.5 detik (popup hilang)
+                        setTimeout(() => {
+                            window.location.href = '{{ route("login") }}';
+                        }, 1500);
+                    } else {
+                        if (data.errors) {
+                            showValidationErrors(
+                                data.errors,
+                                'formChangePassword',
+                            );
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: data.message || 'Terjadi kesalahan',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton:
+                                        'btn btn-primary rounded-2 px-4',
+                                },
+                                buttonsStyling: false,
+                            });
+                        }
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: 'Terjadi kesalahan saat mengirim data',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        buttonsStyling: false,
+                    });
+                });
+        });
+
+    // Toggle Password function
+    function togglePassword(buttonId, inputId) {
+        const toggleBtn = document.getElementById(buttonId);
+        const input = document.getElementById(inputId);
+        const icon = toggleBtn.querySelector('i');
+
+        toggleBtn.addEventListener('click', function () {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('ti-eye');
+                icon.classList.add('ti-eye-off');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('ti-eye-off');
+                icon.classList.add('ti-eye');
+            }
+        });
+    }
+
+    togglePassword('toggleCurrentPassword', 'current_password');
+    togglePassword('toggleNewPassword', 'new_password');
+    togglePassword('toggleConfirmPassword', 'new_password_confirmation');
 </script>
