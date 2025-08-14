@@ -46,6 +46,16 @@
                                             class="ti ti-eye fs-5 text-primary"
                                         ></i>
                                     </button>
+
+                                    <a
+                                        href="{{ route("inspector.riwayat.download", $item->id) }}"
+                                        class="btn btn-sm px-1 border-0 bg-transparent"
+                                        title="Unduh Bukti Inspeksi"
+                                    >
+                                        <i
+                                            class="ti ti-download fs-5 text-success"
+                                        ></i>
+                                    </a>
                                 </td>
                             </tr>
 

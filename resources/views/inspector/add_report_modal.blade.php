@@ -163,6 +163,11 @@
             );
 
             const selectedFiles = [];
+            const tambahLaporanModal =
+                document.getElementById('tambahLaporanModal');
+            const form = tambahLaporanModal
+                ? tambahLaporanModal.querySelector('form')
+                : null;
 
             function renderFileList() {
                 fileList.innerHTML = '';
@@ -183,7 +188,6 @@
             `;
                     fileList.appendChild(li);
 
-                    // Hidden input for each file
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
 
@@ -235,6 +239,68 @@
                 selectedFiles.splice(index, 1);
                 renderFileList();
             });
+
+            // === Submit AJAX + SweetAlert ===
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ).content,
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    })
+                        .then(async (response) => {
+                            const data = await response.json();
+                            if (!response.ok)
+                                throw new Error(
+                                    data.message || 'Gagal menyimpan data',
+                                );
+                            return data;
+                        })
+                        .then((data) => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text:
+                                    data.message ||
+                                    'Laporan berhasil disimpan.',
+                                timer: 1500,
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton:
+                                        'btn btn-primary rounded-2 px-4',
+                                },
+                                showConfirmButton: false,
+                            });
+                            bootstrap.Modal.getInstance(
+                                tambahLaporanModal,
+                            ).hide();
+                            setTimeout(() => location.reload(), 1600);
+                        })
+                        .catch((error) => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text:
+                                    error.message ||
+                                    'Terjadi kesalahan, silakan coba lagi.',
+                            });
+                        });
+                });
+            }
         });
     </script>
 @endpush

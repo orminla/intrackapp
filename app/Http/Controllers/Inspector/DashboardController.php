@@ -31,12 +31,22 @@ class DashboardController extends Controller
         $inspectorId = Inspector::where('users_id', $user->id)->value('inspector_id');
 
         $summary = [
-            'inspeksi_selesai' => Schedule::where('inspector_id', $inspectorId)->where('status', 'Selesai')->count(),
-            'laporan_ditolak' => Schedule::where('inspector_id', $inspectorId)->where('status', 'Ditolak')->count(),
+            'inspeksi_selesai' => Schedule::where('inspector_id', $inspectorId)
+                ->where('status', 'Selesai')
+                ->count(),
+
+            'laporan_ditolak' => Schedule::where('inspector_id', $inspectorId)
+                ->where('status', 'Ditolak')
+                ->count(),
+
             'belum_lapor' => Schedule::where('inspector_id', $inspectorId)
-                ->whereIn('status', ['Disetujui', 'Dalam proses'])->doesntHave('report')->count(),
-            'belum_validasi' => Schedule::where('inspector_id', $inspectorId)
-                ->where('status', 'Disetujui')->has('report')->count(),
+                ->whereIn('status', ['Disetujui', 'Dalam proses'])
+                ->doesntHave('report')
+                ->count(),
+
+            'menunggu_validasi' => Schedule::where('inspector_id', $inspectorId)
+                ->where('status', 'Menunggu konfirmasi')
+                ->count(),
         ];
 
         $waitingSchedules = Schedule::with(['partner', 'product'])

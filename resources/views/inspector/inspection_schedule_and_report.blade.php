@@ -16,36 +16,6 @@
                             <div
                                 class="d-flex align-items-center gap-3 ms-md-auto mt-3 mt-md-0 flex-wrap"
                             >
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="fw-normal text-muted">
-                                        Showing
-                                    </span>
-                                    <select
-                                        class="form-select form-select-sm border-0 bg-light"
-                                        style="min-width: 70px; height: 36px"
-                                    >
-                                        <option value="10">10</option>
-                                        <option value="25">25</option>
-                                        <option value="50">50</option>
-                                    </select>
-                                </div>
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="fw-normal text-muted">
-                                        Filter
-                                    </span>
-                                    <select
-                                        class="form-select form-select-sm border-0 bg-light"
-                                        style="min-width: 100px; height: 36px"
-                                    >
-                                        <option value="all">Semua</option>
-                                        <option value="diproses">
-                                            Diproses
-                                        </option>
-                                        <option value="menunggu">
-                                            Menunggu
-                                        </option>
-                                    </select>
-                                </div>
                                 @if ($jadwalDalamProses)
                                     <div>
                                         <button
@@ -164,23 +134,25 @@
                                                     </div>
                                                 @endif
 
-                                                <form
+                                                {{--
+                                                    <form
                                                     method="POST"
                                                     action="{{ route("inspector.jadwal.destroy", $schedule["id"]) }}"
                                                     class="d-inline delete-form"
-                                                >
+                                                    >
                                                     @csrf
                                                     @method("DELETE")
                                                     <button
-                                                        type="button"
-                                                        class="btn btn-sm px-1 border-0 bg-transparent delete-button"
-                                                        title="Hapus"
+                                                    type="button"
+                                                    class="btn btn-sm px-1 border-0 bg-transparent delete-button"
+                                                    title="Hapus"
                                                     >
-                                                        <i
-                                                            class="ti ti-trash fs-5 text-danger"
-                                                        ></i>
+                                                    <i
+                                                    class="ti ti-trash fs-5 text-danger"
+                                                    ></i>
                                                     </button>
-                                                </form>
+                                                    </form>
+                                                --}}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -212,7 +184,7 @@
                                 <thead>
                                     <tr class="text-center text-dark fw-bold">
                                         <th>No</th>
-                                        <th>Tanggal</th>
+                                        <th>Tanggal Mulai</th>
                                         <th>Tanggal Selesai</th>
                                         <th>Mitra</th>
                                         <th>Lokasi</th>
@@ -251,7 +223,7 @@
                                                 <button
                                                     class="btn btn-sm px-1 border-0 bg-transparent"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#editScheduleModal-{{ "jadwal-" . $i }}"
+                                                    data-bs-target="#editReportModal-{{ "jadwal-" . $i }}"
                                                 >
                                                     <i
                                                         class="ti ti-edit fs-5 text-warning"
@@ -314,23 +286,25 @@
                                                     </div>
                                                 @endif
 
-                                                <form
+                                                {{--
+                                                    <form
                                                     method="POST"
                                                     action="{{ route("inspector.jadwal.destroy", $schedule["id"]) }}"
                                                     class="d-inline delete-form"
-                                                >
+                                                    >
                                                     @csrf
                                                     @method("DELETE")
                                                     <button
-                                                        type="button"
-                                                        class="btn btn-sm px-1 border-0 bg-transparent delete-button"
-                                                        title="Hapus"
+                                                    type="button"
+                                                    class="btn btn-sm px-1 border-0 bg-transparent delete-button"
+                                                    title="Hapus"
                                                     >
-                                                        <i
-                                                            class="ti ti-trash fs-5 text-danger"
-                                                        ></i>
+                                                    <i
+                                                    class="ti ti-trash fs-5 text-danger"
+                                                    ></i>
                                                     </button>
-                                                </form>
+                                                    </form>
+                                                --}}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -369,6 +343,6 @@
     @endforeach
 
     @foreach ($allDataForModal as $key => $report)
-        @include("inspector.edit_schedule_modal", ["schedule" => $report, "index" => $key])
+        @include("inspector.edit_report_modal", ["schedule" => $report, "index" => $key])
     @endforeach
 @endsection

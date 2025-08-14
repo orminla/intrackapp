@@ -1,10 +1,25 @@
 @php
     use Illuminate\Support\Str;
+    use Illuminate\Support\Facades\Route;
+
+    $currentRoute = Route::currentRouteName();
+    $searchAction = "#"; // default jika tidak ada search di halaman ini
+
+    // Mapping halaman yang mendukung search
+    $searchRoutes = [
+        "inspector.dashboard" => route("inspector.dashboard"),
+        "inspector.jadwal.index" => route("inspector.jadwal.index"),
+        "inspector.riwayat.index" => route("inspector.riwayat.index"),
+    ];
+
+    if (isset($searchRoutes[$currentRoute])) {
+        $searchAction = $searchRoutes[$currentRoute];
+    }
 @endphp
 
 <header class="app-header bg-white shadow-sm">
     <nav class="navbar navbar-expand-lg navbar-light">
-        <!-- Menu Toggle (Sidebar Toggler) -->
+        <!-- Menu Toggle -->
         <div class="d-block d-xl-none">
             <a
                 class="nav-link sidebartoggler"
@@ -16,25 +31,49 @@
         </div>
 
         <!-- Search -->
-        <div class="flex-grow-1 ms-3 rounded-pill bg-secondary-subtle px-3">
-            <div class="input-group align-items-center" style="gap: 4px">
-                <div
-                    class="border-0 p-1"
-                    style="padding-right: 0.25rem; background: none"
-                >
-                    <i
-                        class="ti ti-search text-muted"
-                        style="font-size: 16px; margin-right: -4px"
-                    ></i>
+        @if ($searchAction !== "#")
+            <form
+                action="{{ $searchAction }}"
+                method="GET"
+                class="flex-grow-1 ms-3 rounded-pill bg-secondary-subtle px-3"
+            >
+                <div class="input-group align-items-center" style="gap: 4px">
+                    <!-- Icon search -->
+                    <div class="border-0 p-1" style="background: none">
+                        <i
+                            class="ti ti-search text-muted"
+                            style="font-size: 16px"
+                        ></i>
+                    </div>
+
+                    <!-- Input -->
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control border-0"
+                        placeholder="{{ $currentRoute === "inspector.dashboard" ? "Pencarian dinonaktifkan di dashboard" : "Ketik & tekan Enter untuk mencari" }}"
+                        style="padding-left: 0.3rem"
+                        value="{{ request("search") }}"
+                        {{ $currentRoute === "inspector.dashboard" ? "readonly" : "" }}
+                    />
+
+                    <!-- Tombol clear -->
+                    <button
+                        type="button"
+                        id="clearSearch"
+                        class="border-0 bg-transparent p-0 m-0"
+                        style="
+                            display: {{ request("search") ? "inline" : "none" }};
+                            font-size: 22px;
+                            line-height: 1;
+                            cursor: pointer;
+                        "
+                    >
+                        &times;
+                    </button>
                 </div>
-                <input
-                    type="text"
-                    class="form-control border-0"
-                    placeholder="Tap to search"
-                    style="padding-left: 0.3rem"
-                />
-            </div>
-        </div>
+            </form>
+        @endif
 
         <!-- Notifikasi -->
         <ul class="navbar-nav">
@@ -65,7 +104,7 @@
             </li>
         </ul>
 
-        <!-- Profil - Trigger Modal -->
+        <!-- Profil -->
         <div
             class="nav-link d-flex align-items-center gap-2 me-4 profile-hover"
             style="cursor: pointer"
@@ -90,3 +129,83 @@
         </div>
     </nav>
 </header>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let typingTimer;
+        const doneTypingInterval = 400;
+        const searchInput = document.querySelector('input[name="search"]');
+        const form = searchInput?.closest('form');
+        const clearBtn = document.getElementById('clearSearch');
+
+        if (
+            searchInput &&
+            form &&
+            '{{ $currentRoute }}' !== 'inspector.dashboard'
+        ) {
+            // Auto Search (AJAX)
+            searchInput.addEventListener('keyup', function (event) {
+                clearTimeout(typingTimer);
+                clearBtn.style.display = searchInput.value
+                    ? 'inline-flex'
+                    : 'none';
+
+                // Jika tekan Enter → submit form
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    form.submit();
+                    return;
+                }
+
+                typingTimer = setTimeout(() => {
+                    const query = searchInput.value;
+                    let url =
+                        form.getAttribute('action') || window.location.href;
+                    url +=
+                        (url.indexOf('?') === -1 ? '?' : '&') +
+                        'search=' +
+                        encodeURIComponent(query);
+
+                    fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    })
+                        .then((res) => res.text())
+                        .then((html) => {
+                            const container =
+                                document.querySelector('#dataContainer');
+                            if (container) container.innerHTML = html;
+                        })
+                        .catch((err) => console.error(err));
+                }, doneTypingInterval);
+            });
+
+            // Tombol X untuk clear & reload default data
+            clearBtn?.addEventListener('click', function () {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+
+                const baseUrl = form.getAttribute('action');
+
+                // Hapus query search dari URL
+                window.history.replaceState({}, document.title, baseUrl);
+
+                // Reload default data via AJAX
+                fetch(baseUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                    .then((res) => res.text())
+                    .then((html) => {
+                        const container =
+                            document.querySelector('#dataContainer');
+                        if (container) container.innerHTML = html;
+
+                        location.reload();
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        location.reload();
+                    });
+            });
+        }
+    });
+</script>

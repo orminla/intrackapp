@@ -91,5 +91,6 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/riwayat', [InspectorHistoryController::class, 'index'])->name('riwayat.index');
         Route::get('/riwayat/{id}', [InspectorHistoryController::class, 'show'])->name('riwayat.show');
+        Route::get('/riwayat/{id}/download', [InspectorHistoryController::class, 'downloadPdf'])->name('riwayat.download');
     });
 });

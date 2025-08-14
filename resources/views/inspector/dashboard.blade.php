@@ -8,35 +8,49 @@
         @php
             $cards = [
                 ["key" => "inspeksi_selesai", "label" => "Inspeksi Selesai", "icon" => "ti-circle-check", "color" => "primary"],
+                ["key" => "menunggu_validasi", "label" => "Menunggu", "icon" => "ti-alert-circle", "color" => "secondary"],
                 ["key" => "laporan_ditolak", "label" => "Laporan Ditolak", "icon" => "ti-circle-x", "color" => "danger"],
                 ["key" => "belum_lapor", "label" => "Belum Lapor", "icon" => "ti-clock-hour-4", "color" => "warning"],
-                ["key" => "belum_validasi", "label" => "Belum Divalidasi", "icon" => "ti-alert-circle", "color" => "secondary"],
+            ];
+
+            $cardUrls = [
+                "inspeksi_selesai" => route("inspector.riwayat.index"),
+                "menunggu_validasi" => route("inspector.jadwal.index"),
+                "laporan_ditolak" => route("inspector.jadwal.index"),
+                "belum_lapor" => route("inspector.jadwal.index"),
             ];
         @endphp
 
         @foreach ($cards as $card)
             <div class="col-md-3 col-sm-6 mb-2">
-                <div class="card h-100 rounded-4">
-                    <div class="card-body d-flex align-items-center gap-3 p-3">
-                        <span
-                            class="d-inline-flex align-items-center justify-content-center rounded-circle bg-{{ $card["color"] }}-subtle text-{{ $card["color"] }} ms-4"
-                            style="width: 40px; height: 40px"
+                <a
+                    href="{{ $cardUrls[$card["key"]] ?? "#" }}"
+                    class="text-decoration-none"
+                >
+                    <div class="card h-100 rounded-4">
+                        <div
+                            class="card-body d-flex align-items-center gap-3 p-3"
                         >
-                            <i
-                                class="ti {{ $card["icon"] }}"
-                                style="font-size: 18px"
-                            ></i>
-                        </span>
-                        <div style="max-width: 100px">
-                            <h5 class="mb-0 fw-semibold">
-                                {{ $summary[$card["key"]] ?? 0 }}
-                            </h5>
-                            <small class="text-muted">
-                                {{ $card["label"] }}
-                            </small>
+                            <span
+                                class="d-inline-flex align-items-center justify-content-center rounded-circle bg-{{ $card["color"] }}-subtle text-{{ $card["color"] }} ms-4"
+                                style="width: 40px; height: 40px"
+                            >
+                                <i
+                                    class="ti {{ $card["icon"] }}"
+                                    style="font-size: 18px"
+                                ></i>
+                            </span>
+                            <div style="max-width: 100px">
+                                <h5 class="mb-0 fw-semibold">
+                                    {{ $summary[$card["key"]] ?? 0 }}
+                                </h5>
+                                <small class="text-muted">
+                                    {{ $card["label"] }}
+                                </small>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         @endforeach
     </div>

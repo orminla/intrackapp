@@ -226,18 +226,18 @@ class ScheduleController extends Controller
         return redirect()->back()->with('success', 'Laporan berhasil diperbarui.');
     }
 
-    public function destroy(Request $request, $id)
-    {
-        $schedule = Schedule::findOrFail($id);
-        $schedule->delete();
+    // public function destroy(Request $request, $id)
+    // {
+    //     $schedule = Schedule::findOrFail($id);
+    //     $schedule->delete();
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Jadwal berhasil dihapus.'
-            ]);
-        }
+    //     if ($request->expectsJson()) {
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Jadwal berhasil dihapus.'
+    //         ]);
+    //     }
 
-        return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
-    }
+    //     return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
+    // }
 }
