@@ -47,7 +47,7 @@
                     <p class="mb-4">
                         Apakah Anda yakin ingin mengajukan pergantian petugas
                         untuk inspeksi
-                        <strong>{{ $latest["Mitra"] ?? "-" }}</strong>
+                        <strong>{{ $latest["Mitra"] ?? "" }}</strong>
                         ?
                     </p>
 
@@ -94,10 +94,26 @@
             .addEventListener('submit', function (e) {
                 e.preventDefault();
 
-                const reason = document.getElementById('reason').value;
+                const reason = document.getElementById('reason').value.trim();
                 const scheduleId = document.querySelector(
                     "input[name='schedule_id']",
                 ).value;
+
+                if (!reason) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Perhatian',
+                        text: 'Alasan penggantian wajib diisi.',
+                        customClass: { popup: 'rounded-4' },
+                        buttonsStyling: false,
+                    });
+                    return;
+                }
+
+                // Tutup modal terlebih dahulu
+                const modalEl = document.getElementById('changeInspectorModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
 
                 fetch('{{ route("inspector.change-request") }}', {
                     method: 'POST',
@@ -111,17 +127,40 @@
                         schedule_id: scheduleId,
                     }),
                 })
-                    .then((response) => response.json())
+                    .then((res) => res.json())
                     .then((data) => {
                         if (data.success) {
-                            alert(data.message);
-                            location.reload(); // Reload untuk menghindari pengiriman ganda
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text:
+                                    data.message ||
+                                    'Permintaan ganti petugas berhasil dikirim.',
+                                timer: 2000,
+                                showConfirmButton: false,
+                                customClass: { popup: 'rounded-4' },
+                                buttonsStyling: false,
+                            }).then(() => location.reload());
                         } else {
-                            alert(data.message || 'Gagal mengirim permintaan.');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text:
+                                    data.message ||
+                                    'Terjadi kesalahan saat mengirim permintaan.',
+                                customClass: { popup: 'rounded-4' },
+                                buttonsStyling: false,
+                            });
                         }
                     })
                     .catch(() => {
-                        alert('Terjadi kesalahan saat mengirim permintaan.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: 'Terjadi kesalahan saat mengirim permintaan.',
+                            customClass: { popup: 'rounded-4' },
+                            buttonsStyling: false,
+                        });
                     });
             });
     </script>

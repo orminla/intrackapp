@@ -5,7 +5,7 @@
 @section("content")
     <div class="col">
         <div class="row d-flex align-items-stretch">
-            <!-- Jadwal Aktif -->
+            {{-- Jadwal Aktif --}}
             <div class="col-12 mb-4">
                 <div class="card w-100 h-100 rounded-4">
                     <div class="card-body">
@@ -17,16 +17,14 @@
                                 class="d-flex align-items-center gap-3 ms-md-auto mt-3 mt-md-0 flex-wrap"
                             >
                                 @if ($jadwalDalamProses)
-                                    <div>
-                                        <button
-                                            class="btn btn-primary d-flex align-items-center gap-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#tambahLaporanModal"
-                                        >
-                                            <i class="ti ti-plus"></i>
-                                            Tambah Laporan
-                                        </button>
-                                    </div>
+                                    <button
+                                        class="btn btn-primary d-flex align-items-center gap-2"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#tambahLaporanModal"
+                                    >
+                                        <i class="ti ti-plus"></i>
+                                        Tambah Laporan
+                                    </button>
                                 @endif
                             </div>
                         </div>
@@ -73,6 +71,7 @@
                                             <td
                                                 class="px-0 text-center align-middle"
                                             >
+                                                {{-- Tombol Lihat --}}
                                                 <button
                                                     class="btn btn-sm px-1 border-0 bg-transparent"
                                                     data-bs-toggle="modal"
@@ -84,6 +83,7 @@
                                                     ></i>
                                                 </button>
 
+                                                {{-- Dropdown Validasi --}}
                                                 @if ($schedule["status"] === "Menunggu konfirmasi")
                                                     <div class="btn-group">
                                                         <button
@@ -113,14 +113,13 @@
                                                                     >
                                                                         @csrf
                                                                         @method("PUT")
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="status"
-                                                                            value="{{ $opt["label"] }}"
-                                                                        />
                                                                         <button
-                                                                            type="submit"
-                                                                            class="dropdown-item d-flex align-items-center gap-2 {{ $opt["color"] }}"
+                                                                            type="button"
+                                                                            class="dropdown-item d-flex align-items-center gap-2 btn-validasi {{ $opt["color"] }}"
+                                                                            data-status="{{ $opt["label"] }}"
+                                                                            data-action="{{ route("inspector.jadwal.validasi", $schedule["id"]) }}"
+                                                                            data-schedule-id="{{ $schedule["id"] }}"
+                                                                            data-mitra="{{ $schedule["mitra"] ?? "-" }}"
                                                                         >
                                                                             <i
                                                                                 class="{{ $opt["icon"] }}"
@@ -133,26 +132,6 @@
                                                         </ul>
                                                     </div>
                                                 @endif
-
-                                                {{--
-                                                    <form
-                                                    method="POST"
-                                                    action="{{ route("inspector.jadwal.destroy", $schedule["id"]) }}"
-                                                    class="d-inline delete-form"
-                                                    >
-                                                    @csrf
-                                                    @method("DELETE")
-                                                    <button
-                                                    type="button"
-                                                    class="btn btn-sm px-1 border-0 bg-transparent delete-button"
-                                                    title="Hapus"
-                                                    >
-                                                    <i
-                                                    class="ti ti-trash fs-5 text-danger"
-                                                    ></i>
-                                                    </button>
-                                                    </form>
-                                                --}}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -174,7 +153,7 @@
                 </div>
             </div>
 
-            <!-- Laporan Menunggu / Ditolak -->
+            {{-- Laporan Menunggu / Ditolak --}}
             <div class="col-12 mb-4">
                 <div class="card w-100 h-100 rounded-4">
                     <div class="card-body">
@@ -223,88 +202,13 @@
                                                 <button
                                                     class="btn btn-sm px-1 border-0 bg-transparent"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#editReportModal-{{ "jadwal-" . $i }}"
+                                                    data-bs-target="#editReportModal-jadwal-{{ $i }}"
                                                 >
                                                     <i
                                                         class="ti ti-edit fs-5 text-warning"
                                                         title="Lihat & Ubah"
                                                     ></i>
                                                 </button>
-
-                                                @if (in_array($schedule["status"], ["Menunggu konfirmasi", "Dalam proses"]))
-                                                    <div class="btn-group">
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-sm px-1 border-0 bg-transparent dropdown-toggle"
-                                                            data-bs-toggle="dropdown"
-                                                        >
-                                                            <i
-                                                                class="ti ti-circle-check fs-5 text-success"
-                                                            ></i>
-                                                        </button>
-                                                        <ul
-                                                            class="dropdown-menu dropdown-menu-end shadow rounded-3"
-                                                        >
-                                                            @php
-                                                                $opsi = [];
-                                                                if ($schedule["status"] === "Menunggu konfirmasi") {
-                                                                    $opsi = [
-                                                                        ["label" => "Disetujui", "icon" => "ti ti-check", "color" => "text-success"],
-                                                                        ["label" => "Ditolak", "icon" => "ti ti-x", "color" => "text-danger"],
-                                                                    ];
-                                                                } elseif ($schedule["status"] === "Dalam proses") {
-                                                                    $opsi = [["label" => "Selesai", "icon" => "ti ti-clipboard-check", "color" => "text-success"]];
-                                                                }
-                                                            @endphp
-
-                                                            @foreach ($opsi as $opt)
-                                                                <li>
-                                                                    <form
-                                                                        method="POST"
-                                                                        action="{{ route("inspector.jadwal.validasi", $schedule["id"]) }}"
-                                                                    >
-                                                                        @csrf
-                                                                        @method("PUT")
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="status"
-                                                                            value="{{ $opt["label"] }}"
-                                                                        />
-                                                                        <button
-                                                                            type="submit"
-                                                                            class="dropdown-item d-flex align-items-center gap-2 {{ $opt["color"] }}"
-                                                                        >
-                                                                            <i
-                                                                                class="{{ $opt["icon"] }}"
-                                                                            ></i>
-                                                                            {{ $opt["label"] }}
-                                                                        </button>
-                                                                    </form>
-                                                                </li>
-                                                            @endforeach
-                                                        </ul>
-                                                    </div>
-                                                @endif
-
-                                                {{--
-                                                    <form
-                                                    method="POST"
-                                                    action="{{ route("inspector.jadwal.destroy", $schedule["id"]) }}"
-                                                    class="d-inline delete-form"
-                                                    >
-                                                    @csrf
-                                                    @method("DELETE")
-                                                    <button
-                                                    type="button"
-                                                    class="btn btn-sm px-1 border-0 bg-transparent delete-button"
-                                                    title="Hapus"
-                                                    >
-                                                    <i
-                                                    class="ti ti-trash fs-5 text-danger"
-                                                    ></i>
-                                                    </button>
-                                                    </form>
-                                                --}}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -330,8 +234,9 @@
     </div>
 
     @include("inspector.add_report_modal")
+    @include("inspector.change_officer_modal")
 
-    {{-- Modal detail untuk semua data --}}
+    {{-- Detail & Edit modals --}}
     @php
         $allDataForModal = collect($schedules)
             ->mapWithKeys(fn ($item, $i) => ["jadwal-$i" => $item])
@@ -345,4 +250,123 @@
     @foreach ($allDataForModal as $key => $report)
         @include("inspector.edit_report_modal", ["schedule" => $report, "index" => $key])
     @endforeach
+
+    {{-- Hidden form untuk validasi --}}
+    <form id="form-validasi" method="POST" style="display: none">
+        @csrf
+        @method("PUT")
+        <input type="hidden" name="status" id="status-input" />
+    </form>
 @endsection
+
+@push("scripts")
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            document.querySelectorAll('.btn-validasi').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    const status = this.dataset.status;
+                    const action = this.dataset.action;
+                    const scheduleId = this.dataset.scheduleId;
+                    const mitra = this.dataset.mitra || '-';
+
+                    if (status.toLowerCase() === 'ditolak') {
+                        // Modal ganti petugas
+                        e.preventDefault();
+                        const modalEl = document.getElementById('changeInspectorModal');
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+
+                        const scheduleInput = modalEl.querySelector('input[name="schedule_id"]');
+                        if (scheduleInput) scheduleInput.value = scheduleId;
+
+                        const mitraField = modalEl.querySelector('input[name="mitra"]');
+                        if (mitraField) mitraField.value = mitra;
+
+                    } else if (status.toLowerCase() === 'disetujui' || status.toLowerCase() === 'selesai') {
+                        // SweetAlert konfirmasi
+                        e.preventDefault();
+                        Swal.fire({
+                            title: 'Konfirmasi',
+                            text: `Yakin ingin mengubah status menjadi "${status}"?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, setujui',
+                            cancelButtonText: 'Batal',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-success rounded-2 px-4 me-2',
+                                cancelButton: 'btn btn-outline-muted rounded-2 px-4'
+                            },
+                            buttonsStyling: false
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Submit via AJAX
+                                const form = document.getElementById('form-validasi');
+                                form.action = action;
+                                form.querySelector('#status-input').value = status;
+
+                                const formData = new FormData(form);
+                                fetch(form.action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': form.querySelector('input[name=_token]').value,
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        Accept: 'application/json'
+                                    },
+                                    body: formData
+                                })
+                                .then(async res => {
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan');
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Berhasil!',
+                                        text: data.message || 'Status inspeksi berhasil diperbarui.',
+                                        timer: 2000,
+                                        showConfirmButton: false,
+                                        customClass: { popup: 'rounded-4' },
+                                        buttonsStyling: false
+                                    }).then(() => location.reload());
+                                })
+                                .catch(err => {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Gagal!',
+                                        text: err.message || 'Terjadi kesalahan saat memproses permintaan.',
+                                        customClass: { popup: 'rounded-4' },
+                                        buttonsStyling: false
+                                    });
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+            // SweetAlert global untuk session success/error (setelah reload)
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: "{{ session('success') }}",
+                    timer: 2000,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-4' },
+                    buttonsStyling: false
+                });
+            @endif
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: "{{ session('error') }}",
+                    customClass: { popup: 'rounded-4' },
+                    buttonsStyling: false
+                });
+            @endif
+
+        });
+    </script>
+@endpush

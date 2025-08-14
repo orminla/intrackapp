@@ -5,7 +5,7 @@
 <?php $__env->startSection("content"); ?>
     <div class="col">
         <div class="row d-flex align-items-stretch">
-            <!-- Jadwal Aktif -->
+            
             <div class="col-12 mb-4">
                 <div class="card w-100 h-100 rounded-4">
                     <div class="card-body">
@@ -17,16 +17,14 @@
                                 class="d-flex align-items-center gap-3 ms-md-auto mt-3 mt-md-0 flex-wrap"
                             >
                                 <?php if($jadwalDalamProses): ?>
-                                    <div>
-                                        <button
-                                            class="btn btn-primary d-flex align-items-center gap-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#tambahLaporanModal"
-                                        >
-                                            <i class="ti ti-plus"></i>
-                                            Tambah Laporan
-                                        </button>
-                                    </div>
+                                    <button
+                                        class="btn btn-primary d-flex align-items-center gap-2"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#tambahLaporanModal"
+                                    >
+                                        <i class="ti ti-plus"></i>
+                                        Tambah Laporan
+                                    </button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -73,6 +71,7 @@
                                             <td
                                                 class="px-0 text-center align-middle"
                                             >
+                                                
                                                 <button
                                                     class="btn btn-sm px-1 border-0 bg-transparent"
                                                     data-bs-toggle="modal"
@@ -84,6 +83,7 @@
                                                     ></i>
                                                 </button>
 
+                                                
                                                 <?php if($schedule["status"] === "Menunggu konfirmasi"): ?>
                                                     <div class="btn-group">
                                                         <button
@@ -113,14 +113,13 @@
                                                                     >
                                                                         <?php echo csrf_field(); ?>
                                                                         <?php echo method_field("PUT"); ?>
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="status"
-                                                                            value="<?php echo e($opt["label"]); ?>"
-                                                                        />
                                                                         <button
-                                                                            type="submit"
-                                                                            class="dropdown-item d-flex align-items-center gap-2 <?php echo e($opt["color"]); ?>"
+                                                                            type="button"
+                                                                            class="dropdown-item d-flex align-items-center gap-2 btn-validasi <?php echo e($opt["color"]); ?>"
+                                                                            data-status="<?php echo e($opt["label"]); ?>"
+                                                                            data-action="<?php echo e(route("inspector.jadwal.validasi", $schedule["id"])); ?>"
+                                                                            data-schedule-id="<?php echo e($schedule["id"]); ?>"
+                                                                            data-mitra="<?php echo e($schedule["mitra"] ?? "-"); ?>"
                                                                         >
                                                                             <i
                                                                                 class="<?php echo e($opt["icon"]); ?>"
@@ -134,8 +133,6 @@
                                                         </ul>
                                                     </div>
                                                 <?php endif; ?>
-
-                                                
                                             </td>
                                         </tr>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -157,7 +154,7 @@
                 </div>
             </div>
 
-            <!-- Laporan Menunggu / Ditolak -->
+            
             <div class="col-12 mb-4">
                 <div class="card w-100 h-100 rounded-4">
                     <div class="card-body">
@@ -209,71 +206,13 @@
                                                 <button
                                                     class="btn btn-sm px-1 border-0 bg-transparent"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#editReportModal-<?php echo e("jadwal-" . $i); ?>"
+                                                    data-bs-target="#editReportModal-jadwal-<?php echo e($i); ?>"
                                                 >
                                                     <i
                                                         class="ti ti-edit fs-5 text-warning"
                                                         title="Lihat & Ubah"
                                                     ></i>
                                                 </button>
-
-                                                <?php if(in_array($schedule["status"], ["Menunggu konfirmasi", "Dalam proses"])): ?>
-                                                    <div class="btn-group">
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-sm px-1 border-0 bg-transparent dropdown-toggle"
-                                                            data-bs-toggle="dropdown"
-                                                        >
-                                                            <i
-                                                                class="ti ti-circle-check fs-5 text-success"
-                                                            ></i>
-                                                        </button>
-                                                        <ul
-                                                            class="dropdown-menu dropdown-menu-end shadow rounded-3"
-                                                        >
-                                                            <?php
-                                                                $opsi = [];
-                                                                if ($schedule["status"] === "Menunggu konfirmasi") {
-                                                                    $opsi = [
-                                                                        ["label" => "Disetujui", "icon" => "ti ti-check", "color" => "text-success"],
-                                                                        ["label" => "Ditolak", "icon" => "ti ti-x", "color" => "text-danger"],
-                                                                    ];
-                                                                } elseif ($schedule["status"] === "Dalam proses") {
-                                                                    $opsi = [["label" => "Selesai", "icon" => "ti ti-clipboard-check", "color" => "text-success"]];
-                                                                }
-                                                            ?>
-
-                                                            <?php $__currentLoopData = $opsi; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                                                <li>
-                                                                    <form
-                                                                        method="POST"
-                                                                        action="<?php echo e(route("inspector.jadwal.validasi", $schedule["id"])); ?>"
-                                                                    >
-                                                                        <?php echo csrf_field(); ?>
-                                                                        <?php echo method_field("PUT"); ?>
-                                                                        <input
-                                                                            type="hidden"
-                                                                            name="status"
-                                                                            value="<?php echo e($opt["label"]); ?>"
-                                                                        />
-                                                                        <button
-                                                                            type="submit"
-                                                                            class="dropdown-item d-flex align-items-center gap-2 <?php echo e($opt["color"]); ?>"
-                                                                        >
-                                                                            <i
-                                                                                class="<?php echo e($opt["icon"]); ?>"
-                                                                            ></i>
-                                                                            <?php echo e($opt["label"]); ?>
-
-                                                                        </button>
-                                                                    </form>
-                                                                </li>
-                                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                                        </ul>
-                                                    </div>
-                                                <?php endif; ?>
-
-                                                
                                             </td>
                                         </tr>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -299,6 +238,7 @@
     </div>
 
     <?php echo $__env->make("inspector.add_report_modal", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php echo $__env->make("inspector.change_officer_modal", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
     
     <?php
@@ -314,6 +254,125 @@
     <?php $__currentLoopData = $allDataForModal; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $report): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <?php echo $__env->make("inspector.edit_report_modal", ["schedule" => $report, "index" => $key], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+    
+    <form id="form-validasi" method="POST" style="display: none">
+        <?php echo csrf_field(); ?>
+        <?php echo method_field("PUT"); ?>
+        <input type="hidden" name="status" id="status-input" />
+    </form>
 <?php $__env->stopSection(); ?>
+
+<?php $__env->startPush("scripts"); ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            document.querySelectorAll('.btn-validasi').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    const status = this.dataset.status;
+                    const action = this.dataset.action;
+                    const scheduleId = this.dataset.scheduleId;
+                    const mitra = this.dataset.mitra || '-';
+
+                    if (status.toLowerCase() === 'ditolak') {
+                        // Modal ganti petugas
+                        e.preventDefault();
+                        const modalEl = document.getElementById('changeInspectorModal');
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+
+                        const scheduleInput = modalEl.querySelector('input[name="schedule_id"]');
+                        if (scheduleInput) scheduleInput.value = scheduleId;
+
+                        const mitraField = modalEl.querySelector('input[name="mitra"]');
+                        if (mitraField) mitraField.value = mitra;
+
+                    } else if (status.toLowerCase() === 'disetujui' || status.toLowerCase() === 'selesai') {
+                        // SweetAlert konfirmasi
+                        e.preventDefault();
+                        Swal.fire({
+                            title: 'Konfirmasi',
+                            text: `Yakin ingin mengubah status menjadi "${status}"?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, setujui',
+                            cancelButtonText: 'Batal',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-success rounded-2 px-4 me-2',
+                                cancelButton: 'btn btn-outline-muted rounded-2 px-4'
+                            },
+                            buttonsStyling: false
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Submit via AJAX
+                                const form = document.getElementById('form-validasi');
+                                form.action = action;
+                                form.querySelector('#status-input').value = status;
+
+                                const formData = new FormData(form);
+                                fetch(form.action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': form.querySelector('input[name=_token]').value,
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        Accept: 'application/json'
+                                    },
+                                    body: formData
+                                })
+                                .then(async res => {
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan');
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Berhasil!',
+                                        text: data.message || 'Status inspeksi berhasil diperbarui.',
+                                        timer: 2000,
+                                        showConfirmButton: false,
+                                        customClass: { popup: 'rounded-4' },
+                                        buttonsStyling: false
+                                    }).then(() => location.reload());
+                                })
+                                .catch(err => {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Gagal!',
+                                        text: err.message || 'Terjadi kesalahan saat memproses permintaan.',
+                                        customClass: { popup: 'rounded-4' },
+                                        buttonsStyling: false
+                                    });
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+            // SweetAlert global untuk session success/error (setelah reload)
+            <?php if(session('success')): ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: "<?php echo e(session('success')); ?>",
+                    timer: 2000,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-4' },
+                    buttonsStyling: false
+                });
+            <?php endif; ?>
+            <?php if(session('error')): ?>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: "<?php echo e(session('error')); ?>",
+                    customClass: { popup: 'rounded-4' },
+                    buttonsStyling: false
+                });
+            <?php endif; ?>
+
+        });
+    </script>
+<?php $__env->stopPush(); ?>
 
 <?php echo $__env->make("inspector.layouts.app", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/inspector/inspection_schedule_and_report.blade.php ENDPATH**/ ?>

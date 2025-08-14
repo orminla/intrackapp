@@ -38,11 +38,16 @@ class ScheduleController extends Controller
             'partner',
             'product',
             'selectedDetails',
-            'report.documents'
+            'report.documents',
+            'changeRequests'
         ])
             ->where('inspector_id', $inspectorId)
+            ->whereDoesntHave('changeRequests', function ($query) {
+                $query->where('status', 'Menunggu konfirmasi');
+            })
             ->orderBy('started_date')
             ->get();
+
 
         // Filter sesuai kebutuhan
         $filteredJadwal = $allSchedules->filter(function ($schedule) {
@@ -165,7 +170,7 @@ class ScheduleController extends Controller
         if ($user->role !== 'inspector') {
             return $request->expectsJson()
                 ? response()->json(['message' => 'Unauthorized'], 403)
-                : abort(403, 'Hanya petugas yang dapat mengubah jadwal.');
+                : abort(403, 'Hanya petugas yang dapat mengubah laporan.');
         }
 
         // Validasi input
@@ -225,19 +230,4 @@ class ScheduleController extends Controller
 
         return redirect()->back()->with('success', 'Laporan berhasil diperbarui.');
     }
-
-    // public function destroy(Request $request, $id)
-    // {
-    //     $schedule = Schedule::findOrFail($id);
-    //     $schedule->delete();
-
-    //     if ($request->expectsJson()) {
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Jadwal berhasil dihapus.'
-    //         ]);
-    //     }
-
-    //     return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
-    // }
 }
