@@ -29,41 +29,55 @@ class AuthController extends Controller
 
     public function authenticate(Request $request)
     {
+        // Validasi input
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
+        // Cek login
         if (!Auth::attempt($credentials, $request->boolean('remember'))) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Login gagal. Email atau password salah.'
                 ], 401);
             }
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed')
-            ]);
+            return back()->with('error', 'Email atau password salah');
         }
 
         $user = Auth::user();
         $user->makeHidden(['id', 'created_at', 'updated_at']);
 
+        // Ambil nama dari tabel relasi sesuai role
+        $name = $user->name; // fallback
+        if ($user->role === 'admin' && $user->admin) {
+            $name = $user->admin->name; // kolom name di tabel admins
+        } elseif (($user->role === 'inspector' || $user->role === 'petugas') && $user->inspector) {
+            $name = $user->inspector->name; // kolom name di tabel inspectors
+        }
+
+        $request->session()->regenerate();
+
+        // Jika AJAX request
         if ($request->expectsJson()) {
             $token = $user->createToken('api-token')->plainTextToken;
 
             return response()->json([
                 'message' => 'Login berhasil',
                 'token' => $token,
-                'user' => $user,
+                'user' => [
+                    'id' => $user->id,
+                    'role' => $user->role,
+                    'name' => $name,
+                ],
             ]);
         }
 
-        // Web (Blade): redirect sesuai role
-        $request->session()->regenerate();
-
+        // Login web biasa
+        $message = "Selamat datang $name!";
         return match ($user->role) {
-            'admin' => redirect()->route('admin.dashboard')->with('success', 'Selamat datang Admin!'),
-            'inspector', 'petugas' => redirect()->route('inspector.dashboard')->with('success', 'Selamat datang Petugas!'),
+            'admin' => redirect()->route('admin.dashboard')->with('success', $message),
+            'inspector', 'petugas' => redirect()->route('inspector.dashboard')->with('success', $message),
             default => abort(403),
         };
     }

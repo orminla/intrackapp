@@ -134,7 +134,6 @@
         const deptSelect = document.getElementById('adminDepartmentSelect');
         const portfolioSelect = document.getElementById('adminPortfolioSelect');
 
-        // Simpan semua opsi portfolio untuk filter
         const allOptions = Array.from(portfolioSelect.options).filter(
             (o) => o.value !== '',
         );
@@ -180,19 +179,6 @@
             el.addEventListener('change', updateSubmitBtn);
         });
 
-        // Reset form dan portfolio saat modal ditutup
-        modal.addEventListener('hidden.bs.modal', function () {
-            form.reset();
-            portfolioSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Pilih Portofolio';
-            portfolioSelect.appendChild(placeholder);
-            allOptions.forEach((opt) => portfolioSelect.appendChild(opt));
-            updateSubmitBtn();
-            location.reload();
-        });
-
         submitBtn.disabled = true;
 
         // AJAX Submit + SweetAlert
@@ -204,6 +190,8 @@
             }
 
             const formData = new FormData(form);
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+
             fetch(form.action, {
                 method: 'POST',
                 body: formData,
@@ -227,23 +215,35 @@
                         title: 'Berhasil!',
                         text:
                             data.message || 'Data admin berhasil ditambahkan.',
-                        timer: 3000,
-                        customClass: {
-                            popup: 'rounded-4',
-                            confirmButton: 'btn btn-primary rounded-2 px-4',
-                        },
+                        timer: 2000,
                         showConfirmButton: false,
+                        customClass: { popup: 'rounded-4' },
+                        buttonsStyling: false,
                     });
-                    bootstrap.Modal.getInstance(modal).hide();
+                    if (modalInstance) modalInstance.hide();
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
+                    // Tutup modal sementara
+                    if (modalInstance) modalInstance.hide();
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal!',
                         text:
                             error.message ||
-                            'Terjadi kesalahan, silakan coba lagi.',
+                            'Terjadi kesalahan, silakan periksa data.',
+                        showConfirmButton: true,
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        buttonsStyling: false,
+                        preConfirm: () => {
+                            // Buka modal lagi tanpa menghapus data
+                            const m = new bootstrap.Modal(modal);
+                            m.show();
+                        },
                     });
                 });
         });

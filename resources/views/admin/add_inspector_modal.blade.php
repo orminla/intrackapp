@@ -202,12 +202,28 @@
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
+                    // Tutup modal dulu
+                    bootstrap.Modal.getInstance(tambahPetugasModal).hide();
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal!',
                         text:
                             error.message ||
                             'Terjadi kesalahan, silakan coba lagi.',
+                        showConfirmButton: true,
+                        customClass: {
+                            popup: 'rounded-4',
+                            confirmButton: 'btn btn-primary rounded-2 px-4',
+                        },
+                        buttonsStyling: false,
+                        preConfirm: () => {
+                            // Buka modal lagi setelah klik OK
+                            const modal = new bootstrap.Modal(
+                                tambahPetugasModal,
+                            );
+                            modal.show();
+                        },
                     });
                 });
         });

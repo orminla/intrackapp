@@ -28,6 +28,20 @@ class ScheduleController extends Controller
 
         $inspectorId = Inspector::where('users_id', $user->id)->value('inspector_id');
 
+        $approvedThisMonth = \DB::table('inspector_change_requests')
+            ->where('old_inspector_id', $inspectorId) // gunakan old_inspector_id
+            ->where('status', 'Disetujui')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
+
+        // Jika sudah >=2, jadwal menunggu konfirmasi langsung menjadi Dalam proses
+        if ($approvedThisMonth >= 2) {
+            Schedule::where('inspector_id', $inspectorId)
+                ->where('status', 'Menunggu konfirmasi')
+                ->update(['status' => 'Dalam proses']);
+        }
+
         //auto-approve 1x24 jam
         Schedule::where('status', 'Menunggu konfirmasi')
             ->where('created_at', '<=', now()->subDay())
@@ -47,7 +61,6 @@ class ScheduleController extends Controller
             })
             ->orderBy('started_date')
             ->get();
-
 
         // Filter sesuai kebutuhan
         $filteredJadwal = $allSchedules->filter(function ($schedule) {

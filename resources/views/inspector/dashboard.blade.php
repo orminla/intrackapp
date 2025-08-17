@@ -77,24 +77,59 @@
                             </div>
                         @endforeach
 
-                        <button
-                            class="btn w-100 mt-auto mb-2 {{ $hasRequestedChange ? "btn-muted" : "btn-primary" }}"
-                            data-bs-toggle="modal"
-                            data-bs-target="#changeInspectorModal"
-                            @if ($hasRequestedChange) disabled @endif
-                        >
-                            @if ($hasRequestedChange)
+                        {{-- Ajukan Ganti Petugas --}}
+                        @php
+                            $isInProcess = ($latest["Status"] ?? "") === "Dalam proses";
+                        @endphp
+
+                        @if ($isInProcess)
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-success"
+                                disabled
+                            >
+                                Dalam Proses
+                            </button>
+                        @elseif (! $hasRequestedChange && $changeCount < 2)
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#changeInspectorModal"
+                            >
+                                Ajukan Ganti Petugas
+                            </button>
+                        @elseif ($hasRequestedChange)
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-muted"
+                                disabled
+                            >
                                 Menunggu Konfirmasi
-                            @else
-                                    Ajukan Ganti Petugas
-                            @endif
-                        </button>
+                            </button>
+                        @elseif ($changeCount >= 2)
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-muted"
+                                disabled
+                            >
+                                Batas Pergantian Tercapai
+                            </button>
+                        @endif
 
                         {{-- Keterangan di bawah tombol --}}
+
                         @if ($hasRequestedChange)
                             <small class="text-danger d-block mb-2">
                                 Anda telah mengajukan pergantian petugas dan
                                 sedang menunggu konfirmasi dari admin.
+                                <br />
+                                Total pengajuan bulan ini:
+                                <strong>{{ $changeCount }}</strong>
+                                kali, tersisa
+                                <strong>{{ max(0, 2 - $changeCount) }}</strong>
+                                kali.
+                            </small>
+                        @elseif ($changeCount >= 2)
+                            <small class="text-danger d-block mb-2">
+                                Anda sudah mencapai batas maksimal 2 kali
+                                pergantian petugas bulan ini.
                             </small>
                         @else
                             <small
@@ -102,6 +137,12 @@
                                 style="font-size: 0.75rem"
                             >
                                 Maksimal 2 kali pergantian petugas setiap bulan.
+                                <br />
+                                Anda telah mengajukan
+                                <strong>{{ $changeCount }}</strong>
+                                kali, tersisa
+                                <strong>{{ 2 - $changeCount }}</strong>
+                                kali.
                                 <br />
                                 Konfirmasi pergantian terakhir sebelum
                                 <strong>{{ $latestDeadline ?? "-" }}</strong>

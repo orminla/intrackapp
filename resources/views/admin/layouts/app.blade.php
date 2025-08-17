@@ -53,7 +53,7 @@
             .profile-hover:hover small {
                 color: var(--bs-primary);
             }
-            
+
             .pagination {
                 display: flex;
                 flex-wrap: nowrap;
@@ -163,93 +163,6 @@
                     new bootstrap.Tooltip(el);
                 });
         </script>
-        {{--
-            <!-- SweetAlert2 untuk konfirmasi penghapusan -->
-            <script>
-            document.addEventListener('DOMContentLoaded', function () {
-            document
-            .querySelectorAll('.delete-button')
-            .forEach((button) => {
-            button.addEventListener('click', function (e) {
-            const form = button.closest('form');
-            
-            Swal.fire({
-            title: 'Yakin ingin menghapus?',
-            text: 'Data tidak dapat dikembalikan setelah dihapus!',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal',
-            customClass: {
-            popup: 'rounded-4',
-            confirmButton:
-            'btn btn-danger rounded-2 px-4 me-2',
-            cancelButton:
-            'btn btn-outline-muted rounded-2 px-4',
-            },
-            buttonsStyling: false,
-            }).then((result) => {
-            if (result.isConfirmed) {
-            form.submit();
-            }
-            });
-            });
-            });
-            });
-            </script>
-            
-            <!-- SweetAlert2 untuk konfirmasi penolakan -->
-            <script>
-            document.addEventListener('DOMContentLoaded', function () {
-            document
-            .querySelectorAll('.btn-submit-rejected')
-            .forEach((button) => {
-            button.addEventListener('click', function () {
-            const form = button.closest('form');
-            const alasanInput = form.querySelector(
-            'textarea[name="alasan"]',
-            );
-            
-            if (!alasanInput.value.trim()) {
-            Swal.fire({
-            icon: 'warning',
-            title: 'Alasan penolakan wajib diisi!',
-            confirmButtonText: 'OK',
-            customClass: {
-            popup: 'rounded-4',
-            confirmButton:
-            'btn btn-primary rounded-2 px-4',
-            },
-            buttonsStyling: false,
-            });
-            return;
-            }
-            
-            Swal.fire({
-            title: 'Yakin ingin melakukan penolakan?',
-            text: 'Tindakan ini tidak dapat dibatalkan!',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, tolak!',
-            cancelButtonText: 'Batal',
-            customClass: {
-            popup: 'rounded-4',
-            confirmButton:
-            'btn btn-danger rounded-2 px-4 me-2',
-            cancelButton:
-            'btn btn-outline-muted rounded-2 px-4',
-            },
-            buttonsStyling: false,
-            }).then((result) => {
-            if (result.isConfirmed) {
-            form.submit();
-            }
-            });
-            });
-            });
-            });
-            </script>
-        --}}
 
         @stack("scripts")
         <!-- Untuk halaman yang butuh JS tambahan -->

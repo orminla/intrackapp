@@ -386,7 +386,7 @@
                                 title: 'Berhasil',
                                 text:
                                     data.message || 'Jadwal berhasil disimpan!',
-                                timer: 2000,
+                                timer: 3000,
                                 showConfirmButton: false,
                             }).then(() => {
                                 location.reload();

@@ -5,10 +5,10 @@ namespace App\Imports;
 use App\Models\PendingUser;
 use App\Models\User;
 use App\Models\Inspector;
+use App\Models\Admin;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Auth\EmailVerificationController;
 
 class InspectorImport implements ToCollection
@@ -53,15 +53,6 @@ class InspectorImport implements ToCollection
                 throw new \Exception("Data tidak lengkap pada baris $rowNumber.");
             }
 
-            if (
-                User::where('email', $email)->exists() ||
-                Inspector::where('nip', $nip)->exists() ||
-                PendingUser::where('email', $email)->exists() ||
-                PendingUser::where('nip', $nip)->exists()
-            ) {
-                throw new \Exception("Email atau NIP sudah ada di database pada baris $rowNumber.");
-            }
-
             if (!is_numeric($departmentId)) {
                 throw new \Exception("Department ID harus berupa angka pada baris $rowNumber.");
             }
@@ -70,10 +61,24 @@ class InspectorImport implements ToCollection
                 throw new \Exception("Portfolio ID harus berupa angka pada baris $rowNumber.");
             }
 
-            if (preg_match('/^8\d+$/', $phone)) {
-                $phone = '62' . $phone;
-            } elseif (preg_match('/^0\d+$/', $phone)) {
+            // Format nomor HP
+            if (preg_match('/^08\d+$/', $phone)) {
                 $phone = '62' . substr($phone, 1);
+            } elseif (preg_match('/^8\d+$/', $phone)) {
+                $phone = '62' . $phone;
+            }
+
+            // Cek unik: NIP, email, nomor HP di semua tabel terkait
+            if (
+                User::where('email', $email)->exists() ||
+                Inspector::where('nip', $nip)->exists() ||
+                PendingUser::where('email', $email)->exists() ||
+                PendingUser::where('nip', $nip)->exists() ||
+                PendingUser::where('phone_num', $phone)->exists() ||
+                Inspector::where('phone_num', $phone)->exists() ||
+                Admin::where('phone_num', $phone)->exists()
+            ) {
+                throw new \Exception("Email, NIP, atau nomor HP sudah ada di database pada baris $rowNumber.");
             }
 
             $password = strtolower(explode(' ', $name)[0]) . '123';

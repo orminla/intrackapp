@@ -280,4 +280,27 @@
     <script src="{{ asset("admin_assets/js/doughnutchart.js") }}"></script>
     <script src="{{ asset("admin_assets/js/dashboard.js") }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    {{-- SweetAlert Notif --}}
+    <script>
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Login',
+                text: "{{ session('success') }}",
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
+
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Gagal',
+                text: "{{ session('error') }}",
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
+    </script>
 @endpush

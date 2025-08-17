@@ -7,9 +7,12 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Imports\InspectorImport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Mail\AccountCreated;
 
 use App\Models\Inspector;
 use App\Models\Department;
@@ -127,7 +130,6 @@ class InspectorController extends Controller
 
     public function store(Request $request)
     {
-        // Hanya admin yang boleh menambahkan inspector
         $user = Auth::user();
         if ($user->role !== 'admin') {
             $message = 'Hanya admin yang dapat menambahkan petugas.';
@@ -136,9 +138,8 @@ class InspectorController extends Controller
                 : abort(403, $message);
         }
 
-        // Validasi input
         $validated = $request->validate([
-            'name'          => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'nip' => [
                 'required',
                 'string',
@@ -147,54 +148,52 @@ class InspectorController extends Controller
                 'unique:inspectors,nip',
                 'unique:pending_users,nip',
             ],
-            'phone_num'     => 'required|string|max:20',
+            'phone_num' => [
+                'required',
+                'string',
+                'max:20',
+                function ($attribute, $value, $fail) {
+                    $formatted = strpos($value, '08') === 0 ? '62' . substr($value, 1) : $value;
+                    if (
+                        DB::table('inspectors')->where('phone_num', $formatted)->exists() ||
+                        DB::table('admins')->where('phone_num', $formatted)->exists()
+                    ) {
+                        $fail('Nomor HP sudah digunakan di sistem.');
+                    }
+                }
+            ],
             'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
             'department_id' => 'required|exists:departments,department_id',
-            'email'         => 'required|email|unique:users,email|unique:pending_users,email',
+            'email' => 'required|email|unique:users,email|unique:pending_users,email',
         ]);
 
-        // Format nomor HP
-        $phone = $validated['phone_num'];
-        if (strpos($phone, '08') === 0) {
-            $phone = '62' . substr($phone, 1);
-        }
-
-        // Buat password default
+        $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
         $firstName = strtolower(strtok($validated['name'], ' '));
         $defaultPassword = $firstName . '123';
-
-        // Buat token verifikasi unik
         $token = Str::random(40);
 
-        // Simpan ke pending_users
         $pending = PendingUser::create([
-            'name'           => $validated['name'],
-            'email'          => $validated['email'],
-            'phone_num'      => $phone,
-            'role'           => 'inspector',
-            'nip'            => $validated['nip'],
-            'portfolio_id'   => $validated['portfolio_id'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone_num' => $phone,
+            'role' => 'inspector',
+            'nip' => $validated['nip'],
+            'portfolio_id' => $validated['portfolio_id'],
             'password_plain' => $defaultPassword,
-            'verif_token'    => $token,
-            'expired_at'     => now()->addDays(2),
+            'verif_token' => $token,
+            'expired_at' => now()->addDays(2),
         ]);
 
-        // Kirim link verifikasi (via EmailVerificationController)
-        $verif = new EmailVerificationController();
-        $verifLink = url('/verify-email?token=' . $token);
-        $verif->sendVerificationLink($pending);
+        $verifLink = url('/verify-email/' . $token);
 
-        // Jika request API
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Petugas berhasil ditambahkan. Menunggu verifikasi akun.',
-                'verifikasi_link' => $verifLink,
-            ], 201);
-        }
+        $verifController = new EmailVerificationController();
+        $verifController->sendVerificationLink($pending);
 
-        // Jika request Web
-        return redirect()->back()->with('success', 'Petugas berhasil ditambahkan. Tunggu verifikasi email.');
+        Mail::to($pending->email)->send(new AccountCreated($pending, $verifLink));
+
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'message' => 'Petugas berhasil ditambahkan. Menunggu verifikasi akun.', 'verifikasi_link' => $verifLink], 201)
+            : redirect()->back()->with('success', 'Petugas berhasil ditambahkan. Tunggu verifikasi email.');
     }
 
     public function import(Request $request)
@@ -252,37 +251,43 @@ class InspectorController extends Controller
         $user = $inspector->user;
 
         $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'nip'          => [
+            'name' => 'required|string|max:255',
+            'nip' => [
                 'required',
                 'string',
                 'size:18',
                 'regex:/^\d{18}$/',
                 'unique:inspectors,nip,' . $inspector->inspector_id . ',inspector_id'
             ],
-            'email'        => 'required|email|unique:users,email,' . ($user ? $user->id : 'NULL'),
-            'phone_num'    => 'required|string|max:20',
+            'email' => 'required|email|unique:users,email,' . ($user ? $user->id : 'NULL'),
+            'phone_num' => [
+                'required',
+                'string',
+                'max:20',
+                function ($attribute, $value, $fail) use ($inspector) {
+                    $formatted = strpos($value, '08') === 0 ? '62' . substr($value, 1) : $value;
+                    if (
+                        DB::table('inspectors')->where('phone_num', $formatted)->where('inspector_id', '!=', $inspector->inspector_id)->exists() ||
+                        DB::table('admins')->where('phone_num', $formatted)->exists()
+                    ) {
+                        $fail('Nomor HP sudah digunakan di sistem.');
+                    }
+                }
+            ],
             'portfolio_id' => 'required|exists:portfolios,portfolio_id',
         ]);
 
-        // Format nomor HP
-        $phone = $validated['phone_num'];
-        if (strpos($phone, '08') === 0) {
-            $phone = '+62' . substr($phone, 1);
-        }
+        $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
 
-        // Update data petugas
         $inspector->update([
-            'nip'          => $validated['nip'],
-            'name'         => $validated['name'],
-            'phone_num'    => $phone,
+            'nip' => $validated['nip'],
+            'name' => $validated['name'],
+            'phone_num' => $phone,
             'portfolio_id' => $validated['portfolio_id'],
         ]);
 
-        // Update email user terkait
         if ($user) {
             $user->email = $validated['email'];
-            // Jika user juga menyimpan nip, update juga jika ada kolom di user
             if (isset($user->nip)) {
                 $user->nip = $validated['nip'];
             }
@@ -290,15 +295,9 @@ class InspectorController extends Controller
         }
 
         $message = 'Data petugas berhasil diperbarui.';
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-            ]);
-        }
-
-        return redirect()->back()->with('success', $message);
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'message' => $message])
+            : redirect()->back()->with('success', $message);
     }
 
     public function destroy($nip)

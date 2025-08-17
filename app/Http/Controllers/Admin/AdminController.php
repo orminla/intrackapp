@@ -8,12 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 use App\Models\Admin;
 use App\Models\Portfolio;
 use App\Models\Department;
 use App\Models\User;
 use App\Models\PendingUser;
+use App\Mail\AccountCreated;
 
 class AdminController extends Controller
 {
@@ -81,7 +84,6 @@ class AdminController extends Controller
 
     public function store(Request $request)
     {
-        // Hanya admin yang boleh menambahkan admin lain
         $user = Auth::user();
         if ($user->role !== 'admin') {
             $message = 'Hanya admin yang dapat menambahkan admin lain.';
@@ -90,9 +92,8 @@ class AdminController extends Controller
                 : abort(403, $message);
         }
 
-        // Validasi input
         $validated = $request->validate([
-            'name'          => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'nip' => [
                 'required',
                 'string',
@@ -101,57 +102,94 @@ class AdminController extends Controller
                 'unique:inspectors,nip',
                 'unique:pending_users,nip',
             ],
-            'phone_num'     => 'required|string|max:20',
+            'phone_num' => [
+                'required',
+                'string',
+                'max:20',
+                function ($attribute, $value, $fail) {
+                    $formatted = strpos($value, '08') === 0 ? '62' . substr($value, 1) : $value;
+                    if (
+                        DB::table('admins')->where('phone_num', $formatted)->exists() ||
+                        DB::table('inspectors')->where('phone_num', $formatted)->exists()
+                    ) {
+                        $fail('Nomor HP sudah digunakan di sistem.');
+                    }
+                }
+            ],
             'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
             'department_id' => 'required|exists:departments,department_id',
-            'email'         => 'required|email|unique:users,email|unique:pending_users,email',
+            'email' => 'required|email|unique:users,email|unique:pending_users,email',
         ]);
 
-        // Format nomor HP
-        $phone = $validated['phone_num'];
-        if (strpos($phone, '08') === 0) {
-            $phone = '62' . substr($phone, 1);
-        }
-
-        // Buat password default
+        $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
         $firstName = strtolower(strtok($validated['name'], ' '));
         $defaultPassword = $firstName . '123';
-
-        // Buat token verifikasi unik
         $token = Str::random(40);
 
-        // Simpan ke pending_users
         $pending = PendingUser::create([
-            'name'          => $validated['name'],
-            'email'         => $validated['email'],
-            'phone_num'     => $phone,
-            'role'          => 'admin',
-            'nip'           => $validated['nip'],
-            'portfolio_id'  => $validated['portfolio_id'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone_num' => $phone,
+            'role' => 'admin',
+            'nip' => $validated['nip'],
+            'portfolio_id' => $validated['portfolio_id'],
             'password_plain' => $defaultPassword,
-            'verif_token'   => $token,
-            'expired_at'    => now()->addDays(2),
+            'verif_token' => $token,
+            'expired_at' => now()->addDays(2),
         ]);
 
-        // Kirim WA (gunakan controller Auth)
         $verif = new EmailVerificationController();
         $verifLink = url('/verify-email?token=' . $token);
         $verif->sendVerificationLink($pending);
 
-        // Jika request API
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Admin berhasil ditambahkan. Menunggu verifikasi akun.',
-                'verifikasi_link' => $verifLink,
-            ], 201);
+        try {
+            Mail::to($pending->email)->send(new AccountCreated($pending, $verifLink));
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim email: ' . $e->getMessage());
         }
 
-        // Jika request Web
-        return redirect()->back()->with([
-            'success' => 'Admin berhasil ditambahkan. Tunggu verifikasi akun.',
-            'verifikasi_link' => $verifLink,
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'message' => 'Admin berhasil ditambahkan. Menunggu verifikasi akun.', 'verifikasi_link' => $verifLink], 201)
+            : redirect()->back()->with(['success' => 'Admin berhasil ditambahkan. Tunggu verifikasi akun.', 'verifikasi_link' => $verifLink]);
+    }
+
+    public function update(Request $request, $nip)
+    {
+        $admin = Admin::where('nip', $nip)->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'nip' => 'required|string|max:25|unique:admins,nip,' . $admin->admin_id . ',admin_id',
+            'email' => 'required|email|unique:users,email,' . $admin->users_id . ',id',
+            'phone_num' => [
+                'required',
+                'string',
+                'max:20',
+                function ($attribute, $value, $fail) use ($admin) {
+                    $formatted = strpos($value, '08') === 0 ? '62' . substr($value, 1) : $value;
+                    if (
+                        DB::table('admins')->where('phone_num', $formatted)->where('admin_id', '!=', $admin->admin_id)->exists() ||
+                        DB::table('inspectors')->where('phone_num', $formatted)->exists()
+                    ) {
+                        $fail('Nomor HP sudah digunakan di sistem.');
+                    }
+                }
+            ],
+            'portfolio_id' => 'required|exists:portfolios,portfolio_id',
         ]);
+
+        $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
+
+        $admin->update([
+            'name' => $validated['name'],
+            'nip' => $validated['nip'],
+            'phone_num' => $phone,
+            'portfolio_id' => $validated['portfolio_id'],
+        ]);
+
+        $admin->user->update(['email' => $validated['email']]);
+
+        return redirect()->back()->with('success', 'Data admin berhasil diperbarui.');
     }
 
     public function destroy($admin_id)
@@ -177,42 +215,5 @@ class AdminController extends Controller
             'success' => true,
             'data' => $inspector,
         ]);
-    }
-
-    public function update(Request $request, $nip)
-    {
-        $admin = Admin::where('nip', $nip)->firstOrFail();
-
-        $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'nip'          => 'required|string|max:25|unique:admins,nip,' . $admin->admin_id . ',admin_id',
-            'email'        => 'required|email|unique:users,email,' . $admin->users_id . ',id',
-            'phone_num'    => 'required|string|max:20',
-            'portfolio_id' => 'required|exists:portfolios,portfolio_id',
-        ]);
-
-
-        // Format ulang nomor HP
-        $phone = $validated['phone_num'];
-        if (strpos($phone, '08') === 0) {
-            $phone = '62' . substr($phone, 1);
-        }
-
-        // Update Admin
-        $admin->update([
-            'name'         => $validated['name'],
-            'nip'          => $validated['nip'],
-            'phone_num'    => $phone,
-            'portfolio_id' => $validated['portfolio_id'],
-        ]);
-
-        // Update User (email)
-        $user = $admin->user;
-        $user->update([
-            'email' => $validated['email'],
-        ]);
-
-
-        return redirect()->back()->with('success', 'Data admin berhasil diperbarui.');
     }
 }

@@ -9,6 +9,8 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>" />
+
         <title>Sign In - InTrack App</title>
 
         <link
@@ -92,7 +94,7 @@
                             />
                         </div>
 
-                        <form method="POST" action="<?php echo e(route("login.post")); ?>">
+                        <form id="loginForm">
                             <?php echo csrf_field(); ?>
                             <input
                                 type="hidden"
@@ -179,32 +181,11 @@
         <script src="<?php echo e(asset("$assetPath/libs/jquery/dist/jquery.min.js")); ?>"></script>
         <script src="<?php echo e(asset("$assetPath/libs/bootstrap/dist/js/bootstrap.bundle.min.js")); ?>"></script>
         <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
-
-        <script>
-            const passwordInput = document.getElementById('password');
-            const toggleIcon = document.getElementById('togglePassword');
-
-            // Toggle show/hide password
-            toggleIcon.addEventListener('click', function () {
-                const isHidden = passwordInput.type === 'password';
-                passwordInput.type = isHidden ? 'text' : 'password';
-                this.setAttribute('icon', isHidden ? 'mdi:eye' : 'mdi:eye-off');
-            });
-
-            // Show icon only when typing
-            passwordInput.addEventListener('input', function () {
-                if (this.value.length > 0) {
-                    toggleIcon.classList.remove('d-none');
-                } else {
-                    toggleIcon.classList.add('d-none');
-                }
-            });
-        </script>
-
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
         <script>
-            const passwordInput = document.getElementById('password');
+            // Toggle password
+                const passwordInput = document.getElementById('password');
                 const toggleIcon = document.getElementById('togglePassword');
 
                 toggleIcon.addEventListener('click', function () {
@@ -214,13 +195,72 @@
                 });
 
                 passwordInput.addEventListener('input', function () {
-                    if (this.value.length > 0) {
-                        toggleIcon.classList.remove('d-none');
-                    } else {
-                        toggleIcon.classList.add('d-none');
+                    if (this.value.length > 0) toggleIcon.classList.remove('d-none');
+                    else toggleIcon.classList.add('d-none');
+                });
+
+                // AJAX login
+                document.getElementById("loginForm").addEventListener("submit", async function(e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    try {
+                        let res = await fetch("<?php echo e(route('login.post')); ?>", {
+                            method: "POST",
+                            headers: {
+                                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                                "Accept": "application/json"
+                            },
+                            body: formData
+                        });
+
+                        let data = await res.json();
+
+                        if(res.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil Login',
+                                html: `Selamat datang, <strong>${data.user.name}</strong>!`,
+                                timer: 1500,
+                                showConfirmButton: false,
+                                customClass: {
+                                    popup: 'rounded-4',
+                                },
+                            });
+
+                            setTimeout(() => {
+                                if(data.user.role === 'admin') window.location.href = "<?php echo e(route('admin.dashboard')); ?>";
+                                else window.location.href = "<?php echo e(route('inspector.dashboard')); ?>";
+                            }, 1500);
+
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Login Gagal',
+                                html: data.message || 'Email atau password salah',
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton: 'btn btn-danger rounded-2 px-4',
+                                },
+                                buttonsStyling: false,
+                            });
+                        }
+                    } catch(err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: 'Terjadi kesalahan server',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-danger rounded-2 px-4',
+                            },
+                            buttonsStyling: false,
+                        });
                     }
                 });
 
+                // Optional: show verification alert
                 <?php if(session('verifikasi_status') && session('verifikasi_message')): ?>
                     Swal.fire({
                         icon: "<?php echo e(session('verifikasi_status')); ?>",

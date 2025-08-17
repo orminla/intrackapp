@@ -382,7 +382,7 @@
                                             text:
                                                 data.message ||
                                                 'Jadwal berhasil diperbarui.',
-                                            timer: 1500,
+                                            timer: 3000,
                                             showConfirmButton: false,
                                             customClass: { popup: 'rounded-4' },
                                         }).then(() => location.reload());

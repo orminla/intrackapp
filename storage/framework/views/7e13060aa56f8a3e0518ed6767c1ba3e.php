@@ -81,24 +81,59 @@
                             </div>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-                        <button
-                            class="btn w-100 mt-auto mb-2 <?php echo e($hasRequestedChange ? "btn-muted" : "btn-primary"); ?>"
-                            data-bs-toggle="modal"
-                            data-bs-target="#changeInspectorModal"
-                            <?php if($hasRequestedChange): ?> disabled <?php endif; ?>
-                        >
-                            <?php if($hasRequestedChange): ?>
+                        
+                        <?php
+                            $isInProcess = ($latest["Status"] ?? "") === "Dalam proses";
+                        ?>
+
+                        <?php if($isInProcess): ?>
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-success"
+                                disabled
+                            >
+                                Dalam Proses
+                            </button>
+                        <?php elseif(! $hasRequestedChange && $changeCount < 2): ?>
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#changeInspectorModal"
+                            >
+                                Ajukan Ganti Petugas
+                            </button>
+                        <?php elseif($hasRequestedChange): ?>
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-muted"
+                                disabled
+                            >
                                 Menunggu Konfirmasi
-                            <?php else: ?>
-                                    Ajukan Ganti Petugas
-                            <?php endif; ?>
-                        </button>
+                            </button>
+                        <?php elseif($changeCount >= 2): ?>
+                            <button
+                                class="btn w-100 mt-auto mb-2 btn-muted"
+                                disabled
+                            >
+                                Batas Pergantian Tercapai
+                            </button>
+                        <?php endif; ?>
 
                         
+
                         <?php if($hasRequestedChange): ?>
                             <small class="text-danger d-block mb-2">
                                 Anda telah mengajukan pergantian petugas dan
                                 sedang menunggu konfirmasi dari admin.
+                                <br />
+                                Total pengajuan bulan ini:
+                                <strong><?php echo e($changeCount); ?></strong>
+                                kali, tersisa
+                                <strong><?php echo e(max(0, 2 - $changeCount)); ?></strong>
+                                kali.
+                            </small>
+                        <?php elseif($changeCount >= 2): ?>
+                            <small class="text-danger d-block mb-2">
+                                Anda sudah mencapai batas maksimal 2 kali
+                                pergantian petugas bulan ini.
                             </small>
                         <?php else: ?>
                             <small
@@ -106,6 +141,12 @@
                                 style="font-size: 0.75rem"
                             >
                                 Maksimal 2 kali pergantian petugas setiap bulan.
+                                <br />
+                                Anda telah mengajukan
+                                <strong><?php echo e($changeCount); ?></strong>
+                                kali, tersisa
+                                <strong><?php echo e(2 - $changeCount); ?></strong>
+                                kali.
                                 <br />
                                 Konfirmasi pergantian terakhir sebelum
                                 <strong><?php echo e($latestDeadline ?? "-"); ?></strong>

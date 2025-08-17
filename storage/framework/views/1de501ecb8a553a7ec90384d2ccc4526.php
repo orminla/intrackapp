@@ -288,6 +288,29 @@
     <script src="<?php echo e(asset("admin_assets/js/doughnutchart.js")); ?>"></script>
     <script src="<?php echo e(asset("admin_assets/js/dashboard.js")); ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    
+    <script>
+        <?php if(session('success')): ?>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil Login',
+                text: "<?php echo e(session('success')); ?>",
+                timer: 2500,
+                showConfirmButton: false
+            });
+        <?php endif; ?>
+
+        <?php if(session('error')): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Gagal',
+                text: "<?php echo e(session('error')); ?>",
+                timer: 2500,
+                showConfirmButton: false
+            });
+        <?php endif; ?>
+    </script>
 <?php $__env->stopPush(); ?>
 
 <?php echo $__env->make("admin.layouts.app", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\laragon\www\ta_intrackapp\resources\views/admin/dashboard.blade.php ENDPATH**/ ?>

@@ -53,7 +53,7 @@
             .profile-hover:hover small {
                 color: var(--bs-primary);
             }
-            
+
             .pagination {
                 display: flex;
                 flex-wrap: nowrap;
@@ -163,7 +163,6 @@
                     new bootstrap.Tooltip(el);
                 });
         </script>
-        
 
         <?php echo $__env->yieldPushContent("scripts"); ?>
         <!-- Untuk halaman yang butuh JS tambahan -->

@@ -94,10 +94,13 @@
             .addEventListener('submit', function (e) {
                 e.preventDefault();
 
-                const reason = document.getElementById('reason').value.trim();
+                const reasonInput = document.getElementById('reason');
+                const reason = reasonInput.value.trim();
                 const scheduleId = document.querySelector(
                     "input[name='schedule_id']",
                 ).value;
+                const modalEl = document.getElementById('changeInspectorModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
 
                 if (!reason) {
                     Swal.fire({
@@ -110,10 +113,7 @@
                     return;
                 }
 
-                // Tutup modal terlebih dahulu
-                const modalEl = document.getElementById('changeInspectorModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                if (modalInstance) modalInstance.hide();
+                if (modalInstance) modalInstance.hide(); // tutup modal sementara
 
                 fetch('<?php echo e(route("inspector.change-request")); ?>', {
                     method: 'POST',
@@ -148,8 +148,18 @@
                                 text:
                                     data.message ||
                                     'Terjadi kesalahan saat mengirim permintaan.',
-                                customClass: { popup: 'rounded-4' },
+                                showConfirmButton: true,
+                                customClass: {
+                                    popup: 'rounded-4',
+                                    confirmButton:
+                                        'btn btn-primary rounded-2 px-4',
+                                },
                                 buttonsStyling: false,
+                                preConfirm: () => {
+                                    // Buka modal lagi tanpa menghapus data
+                                    const m = new bootstrap.Modal(modalEl);
+                                    m.show();
+                                },
                             });
                         }
                     })
@@ -158,8 +168,16 @@
                             icon: 'error',
                             title: 'Gagal!',
                             text: 'Terjadi kesalahan saat mengirim permintaan.',
-                            customClass: { popup: 'rounded-4' },
+                            showConfirmButton: true,
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-primary rounded-2 px-4',
+                            },
                             buttonsStyling: false,
+                            preConfirm: () => {
+                                const m = new bootstrap.Modal(modalEl);
+                                m.show();
+                            },
                         });
                     });
             });
