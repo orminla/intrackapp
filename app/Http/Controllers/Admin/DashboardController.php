@@ -170,7 +170,7 @@ class DashboardController extends Controller
         $belum = 0;
 
         foreach ($inspectors as $inspector) {
-            $count = $scheduleCounts[$inspector->inspector_id] ?? 0;
+            $count = (int)($scheduleCounts[$inspector->inspector_id] ?? 0);
 
             if ($count === 0) {
                 $belum++;
