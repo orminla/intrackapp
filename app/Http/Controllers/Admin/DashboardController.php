@@ -174,10 +174,10 @@ class DashboardController extends Controller
 
             if ($count === 0) {
                 $belum++;
-            } elseif ($count === 1) {
-                $sesuai++;
-            } else {
+            } elseif ($count >= 4) {
                 $berlebih++;
+            } else {
+                $sesuai++;
             }
         }
 
