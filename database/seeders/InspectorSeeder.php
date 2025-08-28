@@ -20,7 +20,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199001012022011001',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 1,
-                'password' => 'agus123'
+                'password' => 'agus123',
+                'gender' => 'Laki-laki'
             ],
             [
                 'name' => 'Siti Rahmawati',
@@ -28,7 +29,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199203152022011002',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 2,
-                'password' => 'siti123'
+                'password' => 'siti123',
+                'gender' => 'Perempuan'
             ],
             [
                 'name' => 'Budi Wijaya',
@@ -36,7 +38,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199509202022011003',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 3,
-                'password' => 'budi123'
+                'password' => 'budi123',
+                'gender' => 'Laki-laki'
             ],
             [
                 'name' => 'Rina Marlina',
@@ -44,7 +47,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199301122022011004',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 4,
-                'password' => 'rina123'
+                'password' => 'rina123',
+                'gender' => 'Perempuan'
             ],
             [
                 'name' => 'Dedi Kurniawan',
@@ -52,7 +56,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '198812152022011005',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 5,
-                'password' => 'dedi123'
+                'password' => 'dedi123',
+                'gender' => 'Laki-laki'
             ],
             [
                 'name' => 'Wulan Septiani',
@@ -60,7 +65,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199611102022011006',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 6,
-                'password' => 'wulan123'
+                'password' => 'wulan123',
+                'gender' => 'Perempuan'
             ],
             [
                 'name' => 'Fajar Nugroho',
@@ -68,7 +74,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199404202022011007',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 7,
-                'password' => 'fajar123'
+                'password' => 'fajar123',
+                'gender' => 'Laki-laki'
             ],
             [
                 'name' => 'Lestari Ayu',
@@ -76,7 +83,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199208112022011008',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 8,
-                'password' => 'lestari123'
+                'password' => 'lestari123',
+                'gender' => 'Perempuan'
             ],
             [
                 'name' => 'Andi Saputra',
@@ -84,7 +92,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199701302022011009',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 9,
-                'password' => 'andi123'
+                'password' => 'andi123',
+                'gender' => 'Laki-laki'
             ],
             [
                 'name' => 'Nurul Hikmah',
@@ -92,7 +101,8 @@ class InspectorSeeder extends Seeder
                 'nip' => '199605282022011010',
                 'phone_num' => '6287742393890',
                 'portfolio_id' => 10,
-                'password' => 'nurul123'
+                'password' => 'nurul123',
+                'gender' => 'Perempuan'
             ],
         ];
 
@@ -108,7 +118,8 @@ class InspectorSeeder extends Seeder
                 'name' => $data['name'],
                 'phone_num' => $data['phone_num'],
                 'portfolio_id' => $data['portfolio_id'],
-                'users_id' => $user->id
+                'users_id' => $user->id,
+                'gender' => $data['gender']
             ]);
         }
     }

@@ -72,7 +72,6 @@ class HistoryController extends Controller
         ]);
     }
 
-
     public function show($id)
     {
         $schedule = Schedule::with([

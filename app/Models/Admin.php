@@ -18,6 +18,7 @@ class Admin extends Model
         'email',
         'phone_num',
         'portfolio_id',
+        'gender',
         'users_id'
     ];
 

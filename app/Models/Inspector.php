@@ -17,6 +17,7 @@ class Inspector extends Model
         'name',
         'phone_num',
         'portfolio_id',
+        'gender',
         'users_id'
     ];
 

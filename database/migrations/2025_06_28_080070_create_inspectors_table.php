@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('nip')->unique();
             $table->string('phone_num');
+            $table->enum('gender', ['Laki-laki', 'Perempuan']);
             $table->unsignedBigInteger('portfolio_id');
             $table->timestamps();
 

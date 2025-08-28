@@ -26,6 +26,7 @@ class AdminSeeder extends Seeder
             'nip' => '198809282022011001',
             'name' => 'Bayu Harjoko Adimulyo',
             'phone_num' => '6281234567890',
+            'gender' => 'Laki-laki',
             'portfolio_id' => 1,
             'users_id' => $user->id
         ]);

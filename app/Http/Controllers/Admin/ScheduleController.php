@@ -493,7 +493,6 @@ class ScheduleController extends Controller
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
     }
 
-    // tampilan permintaan petugas
     public function changeReq(Request $request = null, bool $returnOnly = false, $filterChange = 'all', $showingChange = 10)
     {
         $query = InspectorChangeRequest::with([
