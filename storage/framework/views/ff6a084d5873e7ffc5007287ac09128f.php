@@ -59,6 +59,12 @@
                     <span>: <?php echo e($profile["nip"] ?? "-"); ?></span>
                 </div>
                 <div class="mb-2 d-flex">
+                    <strong class="me-2" style="min-width: 110px">
+                        Jenis Kelamin
+                    </strong>
+                    <span>: <?php echo e($profile["gender"] ?? "-"); ?></span>
+                </div>
+                <div class="mb-2 d-flex">
                     <strong class="me-2" style="min-width: 110px">Email</strong>
                     <span>: <?php echo e($profile["email"] ?? "-"); ?></span>
                 </div>
@@ -157,6 +163,30 @@
                             value="<?php echo e(old("name", $profile["name"] ?? "")); ?>"
                         />
                         <div class="invalid-feedback" id="error-name"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="gender" class="form-label">
+                            Jenis Kelamin
+                        </label>
+                        <select name="gender" id="gender" class="form-select">
+                            <option value="">Pilih</option>
+                            <option
+                                value="Laki-laki"
+                                <?php echo e(old("gender", $profile["gender"]) == "Laki-laki" ? "selected" : ""); ?>
+
+                            >
+                                Laki-laki
+                            </option>
+                            <option
+                                value="Perempuan"
+                                <?php echo e(old("gender", $profile["gender"]) == "Perempuan" ? "selected" : ""); ?>
+
+                            >
+                                Perempuan
+                            </option>
+                        </select>
+                        <div class="invalid-feedback" id="error-gender"></div>
                     </div>
 
                     <div class="mb-3">
@@ -367,6 +397,8 @@
 </div>
 
 <script>
+    console.log('Profile Data:', <?php echo json_encode($profile, 15, 512) ?>);
+
     // Preview photo upload
     function previewPhoto(event) {
         const input = event.target;

@@ -119,13 +119,11 @@
                                     >
                                         Nama
                                     </th>
-                                    {{--
-                                        <th
+                                    <th
                                         class="px-0 text-dark text-center fw-bold"
-                                        >
-                                        Bidang
-                                        </th>
-                                    --}}
+                                    >
+                                        Jenis Kelamin
+                                    </th>
                                     <th
                                         class="px-0 text-dark text-center fw-bold"
                                     >
@@ -171,13 +169,11 @@
                                         >
                                             {{ $inspector["name"] }}
                                         </td>
-                                        {{--
-                                            <td
+                                        <td
                                             class="px-0 text-center align-middle"
-                                            >
-                                            {{ $inspector["department"] }}
-                                            </td>
-                                        --}}
+                                        >
+                                            {{ $inspector["gender"] }}
+                                        </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >

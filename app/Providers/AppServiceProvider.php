@@ -50,6 +50,7 @@ class AuthServiceProvider extends ServiceProvider
                     'role'       => $user->role,
                     'photo_url'  => $photo ?: $photoDefault,
                     'nip'        => optional($user->admin ?? $user->inspector)->nip ?? '-',
+                    'gender'     => optional($user->admin ?? $user->inspector)->gender ?? '-',
                     'phone_num'  => optional($user->admin ?? $user->inspector)->phone_num ?? '-',
                     'portfolio'  => optional(optional($user->admin ?? $user->inspector)->portfolio)->name ?? '-',
                     'department' => optional(optional(optional($user->admin ?? $user->inspector)->portfolio)->department)->name ?? '-',

@@ -84,6 +84,31 @@
                                     disabled
                                 />
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Jenis Kelamin</label>
+                                <select
+                                    name="gender"
+                                    class="form-select"
+                                    required
+                                    disabled
+                                >
+                                    <option value="">Pilih</option>
+                                    <option
+                                        value="Laki-laki"
+                                        <?php echo e(($admin["gender"] ?? "") == "Laki-laki" ? "selected" : ""); ?>
+
+                                    >
+                                        Laki-laki
+                                    </option>
+                                    <option
+                                        value="Perempuan"
+                                        <?php echo e(($admin["gender"] ?? "") == "Perempuan" ? "selected" : ""); ?>
+
+                                    >
+                                        Perempuan
+                                    </option>
+                                </select>
+                            </div>
 
                             
                             <div class="col-md-6 mb-3">

@@ -92,7 +92,7 @@
                                     <th
                                         class="px-0 text-dark text-center fw-bold"
                                     >
-                                        Bidang
+                                        Jenis Kelamin
                                     </th>
                                     <th
                                         class="px-0 text-dark text-center fw-bold"
@@ -130,7 +130,7 @@
                                         <td
                                             class="px-0 text-center align-middle"
                                         >
-                                            <?php echo e($admin["department"] ?? "-"); ?>
+                                            <?php echo e($admin["gender"]); ?>
 
                                         </td>
                                         <td

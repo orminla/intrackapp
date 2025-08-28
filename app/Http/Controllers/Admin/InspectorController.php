@@ -98,6 +98,7 @@ class InspectorController extends Controller
             return [
                 'nip'               => $inspector->nip,
                 'name'              => $inspector->name,
+                'gender'            => $inspector->gender,
                 'phone_num'         => $inspector->phone_num,
                 'email'             => $inspector->user->email,
                 'portfolio_id'      => $inspector->portfolio_id,

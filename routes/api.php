@@ -29,7 +29,6 @@ Route::post('/login', [AuthController::class, 'authenticate']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 
-
 // 🔐 PROTECTED ROUTES (Semua di bawah ini butuh token)
 Route::middleware('auth:sanctum')->group(function () {
     // profile

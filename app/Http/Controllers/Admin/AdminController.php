@@ -55,6 +55,7 @@ class AdminController extends Controller
             return [
                 'admin_id'      => $admin->admin_id,
                 'nip'           => $admin->nip,
+                'gender'        => $admin->gender,
                 'name'          => $admin->name,
                 'phone_num'     => $admin->phone_num,
                 'email'         => $admin->user?->email,
@@ -116,6 +117,7 @@ class AdminController extends Controller
                     }
                 }
             ],
+            'gender' => 'required|in:Laki-laki,Perempuan',
             'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
             'department_id' => 'required|exists:departments,department_id',
             'email' => 'required|email|unique:users,email|unique:pending_users,email',
@@ -132,6 +134,7 @@ class AdminController extends Controller
             'phone_num' => $phone,
             'role' => 'admin',
             'nip' => $validated['nip'],
+            'gender' => $validated['gender'],
             'portfolio_id' => $validated['portfolio_id'],
             'password_plain' => $defaultPassword,
             'verif_token' => $token,
@@ -160,6 +163,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'nip' => 'required|string|max:25|unique:admins,nip,' . $admin->admin_id . ',admin_id',
+            'gender' => 'required|in:Laki-laki,Perempuan',
             'email' => 'required|email|unique:users,email,' . $admin->users_id . ',id',
             'phone_num' => [
                 'required',
@@ -185,6 +189,7 @@ class AdminController extends Controller
             'nip' => $validated['nip'],
             'phone_num' => $phone,
             'portfolio_id' => $validated['portfolio_id'],
+            'gender' => $validated['gender'],
         ]);
 
         $admin->user->update(['email' => $validated['email']]);

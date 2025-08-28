@@ -122,7 +122,11 @@
                                     >
                                         Nama
                                     </th>
-                                    
+                                    <th
+                                        class="px-0 text-dark text-center fw-bold"
+                                    >
+                                        Jenis Kelamin
+                                    </th>
                                     <th
                                         class="px-0 text-dark text-center fw-bold"
                                     >
@@ -171,7 +175,12 @@
                                             <?php echo e($inspector["name"]); ?>
 
                                         </td>
-                                        
+                                        <td
+                                            class="px-0 text-center align-middle"
+                                        >
+                                            <?php echo e($inspector["gender"]); ?>
+
+                                        </td>
                                         <td
                                             class="px-0 text-center align-middle"
                                         >

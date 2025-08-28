@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Inspector;
+use App\Models\Admin;
 
 class ProfileController extends Controller
 {
@@ -31,6 +33,7 @@ class ProfileController extends Controller
             'role'       => $user->role,
             'photo_url'  => $user->photo_url ?: $photoDefault,
             'nip'        => '-',
+            'gender'     => '-',
             'phone_num'  => '-',
             'portfolio'  => '-',
             'department' => '-',
@@ -38,21 +41,29 @@ class ProfileController extends Controller
 
         if ($user->role === 'inspector' && $user->inspector) {
             $user->loadMissing('inspector.portfolio.department');
+
             $data['name']       = $user->inspector->name ?? $data['name'];
             $data['nip']        = $user->inspector->nip ?? '-';
+            $data['gender']     = $user->inspector->gender ?? '-';
             $data['phone_num']  = $user->inspector->phone_num ?? '-';
             $data['portfolio']  = optional($user->inspector->portfolio)->name ?? '-';
-            $data['department'] = optional($user->inspector->portfolio->department)->name ?? '-';
+            $data['department'] = optional(optional($user->inspector->portfolio)->department)->name ?? '-';
         }
 
         if ($user->role === 'admin' && $user->admin) {
-            $user->loadMissing('admin.portfolios.department');
+            $user->loadMissing('admin.portfolio.department'); // fixed here
+
             $data['name']       = $user->admin->name ?? $data['name'];
             $data['nip']        = $user->admin->nip ?? '-';
+            $data['gender']     = $user->admin->gender ?? '-';
             $data['phone_num']  = $user->admin->phone_num ?? '-';
-            $data['portfolio']  = optional($user->admin->portfolios)->name ?? '-';
-            $data['department'] = optional($user->admin->portfolios->department)->name ?? '-';
+            $data['portfolio']  = optional($user->admin->portfolio)->name ?? '-';
+            $data['department'] = optional(optional($user->admin->portfolio)->department)->name ?? '-';
         }
+
+        logger()->info('User admin relasi:', ['admin' => $user->admin]);
+        logger()->info('Final data:', $data);
+
 
         return $request->expectsJson()
             ? response()->json(['success' => true, 'data' => $data])
@@ -73,6 +84,7 @@ class ProfileController extends Controller
             'name'       => 'sometimes|required|string|max:255',
             'email'      => 'sometimes|required|email|max:255|unique:users,email,' . $user->id,
             'phone_num'  => 'sometimes|nullable|string|max:20',
+            'gender'     => 'sometimes|in:Laki-laki,Perempuan',
             'photo_url'  => 'sometimes|nullable|file|image|max:2048',
         ]);
 
@@ -95,7 +107,7 @@ class ProfileController extends Controller
             $file = $request->file('photo_url');
             $extension = $file->getClientOriginalExtension();
             $filename = 'profile_' . Str::slug($user->name) . '_' . time() . '.' . $extension;
-            $path = $file->move(public_path('storage/profile_photos'), $filename);
+            $file->move(public_path('storage/profile_photos'), $filename);
 
             $validated['photo_url'] = asset('storage/profile_photos/' . $filename);
         }
@@ -109,11 +121,13 @@ class ProfileController extends Controller
             $user->admin->fill([
                 'name'      => $validated['name']      ?? $user->admin->name,
                 'phone_num' => $validated['phone_num'] ?? $user->admin->phone_num,
+                'gender'    => $validated['gender']    ?? $user->admin->gender,
             ])->save();
         } elseif ($user->role === 'inspector' && $user->inspector) {
             $user->inspector->fill([
                 'name'      => $validated['name']      ?? $user->inspector->name,
                 'phone_num' => $validated['phone_num'] ?? $user->inspector->phone_num,
+                'gender'    => $validated['gender']    ?? $user->inspector->gender,
             ])->save();
         }
 
@@ -136,7 +150,7 @@ class ProfileController extends Controller
 
         $validator = Validator::make($request->all(), [
             'current_password' => 'required',
-            'new_password' => 'required|string|min:6|confirmed',
+            'new_password'     => 'required|string|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
