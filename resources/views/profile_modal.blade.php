@@ -1,21 +1,92 @@
 <style>
     .custom-modal-width {
-        max-width: 85%;
+        max-width: 100%;
         margin-left: auto;
         margin-right: auto;
     }
 
     @media (min-width: 768px) {
         .custom-modal-width {
-            max-width: 480px;
+            max-width: 520px;
         }
     }
 
-    #resetPasswordModal .input-group > input.form-control,
-    #resetPasswordModal .input-group > button {
+    #profileModal .profile-pic {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid #0d6efd;
+        padding: 2px;
+    }
+
+    #profileModal .field-label {
+        min-width: 110px;
+        font-weight: 600;
+    }
+
+    #profileModal .field-row {
+        margin-bottom: 0.75rem;
+    }
+
+    #profileModal .certification-section input[type='file'] {
+        display: none;
+    }
+
+    #profileModal .certification-section label {
+        cursor: pointer;
+        margin-left: 10px;
+    }
+
+    #profileModal .certification-section span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+        display: inline-block;
+    }
+
+    .certification-card {
+        width: 100%; /* full lebar container */
+        background-color: #f8f9fa; /* warna default card */
+        border: 1px solid #dee2e6;
         border-radius: 0.375rem;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        transition:
+            background-color 0.25s ease,
+            border-color 0.25s ease,
+            color 0.25s ease,
+            box-shadow 0.25s ease;
+        cursor: pointer;
+        box-sizing: border-box; /* padding tidak menambah lebar */
+        word-wrap: break-word; /* kata panjang akan pindah baris */
+    }
+
+    .certification-card:hover {
+        background-color: #e2ebff !important; /* biru terang */
+        border-color: #e2ebff !important;
+        color: #1e4db7; /* semua teks jadi putih */
+    }
+
+    .certification-card .small {
+        display: block; /* agar block, bukan inline */
+        width: 100%; /* pakai lebar penuh */
+        white-space: normal; /* wrap otomatis */
+        overflow: visible; /* jangan dipotong */
+        text-overflow: clip;
+        word-break: break-word;
     }
 </style>
+
+@include(
+    "add_certification_modal",
+    [
+        "allPortfolios" => $allPortfolios ?? collect([]),
+        "profile" => $profile ?? [],
+    ]
+)
+@include("edit_certification_modal")
 
 <!-- Modal Profil -->
 <div
@@ -26,7 +97,7 @@
     aria-hidden="true"
 >
     <div class="modal-dialog modal-dialog-centered custom-modal-width">
-        <div class="modal-content rounded-4 p-3">
+        <div class="modal-content rounded-4 p-4">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title" id="profileModalLabel">Profil Saya</h5>
                 <button
@@ -37,14 +108,13 @@
                 ></button>
             </div>
 
-            <div class="modal-body pt-2 mt-2">
-                <div class="text-center mb-3">
+            <div class="modal-body">
+                <!-- Foto Profil -->
+                <div class="text-center mb-4">
                     <img
                         src="{{ $profile["photo_url"] }}"
-                        class="rounded-circle mb-2 object-fit-cover"
-                        width="80"
-                        height="80"
                         alt="Foto Profil"
+                        class="profile-pic mb-2"
                     />
                     <h5 class="fw-bold mb-0">{{ $profile["name"] }}</h5>
                     <small class="text-muted text-capitalize">
@@ -53,41 +123,93 @@
                 </div>
 
                 <hr />
-                <div class="mb-2 d-flex">
-                    <strong class="me-2" style="min-width: 110px">NIP</strong>
-                    <span>: {{ $profile["nip"] ?? "-" }}</span>
+
+                <!-- Informasi Profil -->
+                <div class="field-row d-flex">
+                    <div class="field-label">NIP</div>
+                    <div>: {{ $profile["nip"] ?? "-" }}</div>
                 </div>
-                <div class="mb-2 d-flex">
-                    <strong class="me-2" style="min-width: 110px">
-                        Jenis Kelamin
-                    </strong>
-                    <span>: {{ $profile["gender"] ?? "-" }}</span>
+                <div class="field-row d-flex">
+                    <div class="field-label">Jenis Kelamin</div>
+                    <div>: {{ $profile["gender"] ?? "-" }}</div>
                 </div>
-                <div class="mb-2 d-flex">
-                    <strong class="me-2" style="min-width: 110px">Email</strong>
-                    <span>: {{ $profile["email"] ?? "-" }}</span>
+                <div class="field-row d-flex">
+                    <div class="field-label">Email</div>
+                    <div>: {{ $profile["email"] ?? "-" }}</div>
                 </div>
-                <div class="mb-2 d-flex">
-                    <strong class="me-2" style="min-width: 110px">
-                        No. Telepon
-                    </strong>
-                    <span>: {{ $profile["phone_num"] ?? "-" }}</span>
+                <div class="field-row d-flex">
+                    <div class="field-label">No. Telepon</div>
+                    <div>: {{ $profile["phone_num"] ?? "-" }}</div>
                 </div>
-                <div class="mb-2 d-flex">
-                    <strong class="me-2" style="min-width: 110px">
-                        Bidang
-                    </strong>
-                    <span>: {{ $profile["department"] ?? "-" }}</span>
+                <div class="field-row d-flex">
+                    <div class="field-label">Bidang</div>
+                    <div>: {{ $profile["department"] ?? "-" }}</div>
                 </div>
-                <div class="d-flex">
-                    <strong class="me-2" style="min-width: 110px">
-                        Portofolio
-                    </strong>
-                    <span>: {{ $profile["portfolio"] ?? "-" }}</span>
+                <div class="field-row d-flex">
+                    <div class="field-label">Portofolio</div>
+                    <div>: {{ $profile["portfolio"] ?? "-" }}</div>
+                </div>
+
+                <hr />
+
+                <!-- Sertifikasi -->
+                <div class="field-row certification-section">
+                    <div
+                        class="d-flex justify-content-between align-items-center mb-3"
+                    >
+                        <strong>Sertifikasi</strong>
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm mb-0"
+                            data-bs-toggle="modal"
+                            data-bs-target="#tambahCertifModal"
+                        >
+                            <i class="ti ti-plus me-1"></i>
+                            Tambah
+                        </button>
+                    </div>
+
+                    <!-- Daftar file sertifikasi -->
+                    <div
+                        class="certification-list"
+                        style="max-height: 200px; overflow-y: auto"
+                    >
+                        @if (isset($profile["certifications"]) && $profile["certifications"]->isNotEmpty())
+                            @foreach ($profile["certifications"] as $cert)
+                                @php
+                                    $certUrl = $cert->file_path ? asset("storage/" . $cert->file_path) : null;
+                                @endphp
+
+                                <div
+                                    class="certification-card mb-2 p-2 border rounded bg-light"
+                                    @if ($certUrl)
+                                        onclick="window.open('{{ $certUrl }}', '_blank')"
+                                        style="cursor: pointer;"
+                                    @endif
+                                >
+                                    <div class="fw-bold mb-1">
+                                        {{ $cert->name }}
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        Diterbitkan oleh
+                                        {{ $cert->issuer ?? "-" }} & berlaku
+                                        sejak
+                                        {{ $cert->issued_at ? \Carbon\Carbon::parse($cert->issued_at)->format("d M Y") : "-" }}
+                                        hingga
+                                        {{ $cert->expired_at ? \Carbon\Carbon::parse($cert->expired_at)->format("d M Y") : "selamanya." }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="text-muted">Belum ada sertifikasi</div>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            <div class="modal-footer border-0 pt-0 mt-2">
+            <!-- Footer -->
+            <div class="modal-footer border-0 d-flex flex-column gap-2">
                 <button
                     type="button"
                     class="btn btn-primary w-100"
@@ -98,7 +220,6 @@
                     <i class="ti ti-pencil me-2"></i>
                     Edit Profil
                 </button>
-
                 <button
                     type="button"
                     class="btn btn-outline-primary w-100"

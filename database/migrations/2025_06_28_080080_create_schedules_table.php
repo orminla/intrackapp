@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('schedules', function (Blueprint $table) {
             $table->bigIncrements('schedule_id');
             $table->unsignedBigInteger('inspector_id');
+            $table->string('letter_number')->unique();
+            $table->date('letter_date');
             $table->unsignedBigInteger('partner_id');
             $table->unsignedBigInteger('product_id');
             $table->date('started_date');

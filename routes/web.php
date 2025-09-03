@@ -16,8 +16,10 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Inspector\DashboardController as InspectorDashboardController;
 use App\Http\Controllers\Inspector\ScheduleController as InspectorScheduleReportController;
 use App\Http\Controllers\Inspector\HistoryController as InspectorHistoryController;
+
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CertificationController;
 
 // LOGIN & LOGOUT
 Route::get('/', [AuthController::class, 'login'])->name('login');
@@ -39,6 +41,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/change-password', [ProfileController::class, 'changePassword'])->name('profile.change-password');
+
+    // CERTIFICATION ROUTES
+    Route::get('/certifications', [CertificationController::class, 'index'])->name('certifications.index');
+    Route::post('/certifications', [CertificationController::class, 'store'])->name('certifications.store');
+    Route::put('/certifications/{id}', [CertificationController::class, 'update'])->name('certifications.update');
+    Route::delete('/certifications/{id}', [CertificationController::class, 'destroy'])->name('certifications.destroy');
 
     // Redirect user ke dashboard sesuai role
     Route::get('/dashboard', function () {

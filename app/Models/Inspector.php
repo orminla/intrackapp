@@ -35,4 +35,9 @@ class Inspector extends Model
     {
         return $this->belongsTo(User::class, 'users_id', 'id');
     }
+
+    public function certifications()
+    {
+        return $this->hasMany(Certification::class, 'inspector_id', 'inspector_id');
+    }
 }

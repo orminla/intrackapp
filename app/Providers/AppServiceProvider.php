@@ -6,6 +6,7 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Portfolio;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -54,9 +55,14 @@ class AuthServiceProvider extends ServiceProvider
                     'phone_num'  => optional($user->admin ?? $user->inspector)->phone_num ?? '-',
                     'portfolio'  => optional(optional($user->admin ?? $user->inspector)->portfolio)->name ?? '-',
                     'department' => optional(optional(optional($user->admin ?? $user->inspector)->portfolio)->department)->name ?? '-',
+                    'certifications' => optional($user->admin ?? $user->inspector)->certifications ?? collect(),
                 ];
 
                 $view->with('profile', $profile);
+            }
+
+            if (!View::shared('allPortfolios')) {
+                View::share('allPortfolios', Portfolio::all());
             }
         });
     }

@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Inspector;
 use App\Models\Admin;
+use App\Models\Portfolio;
+use App\Models\Certification;
 
 class ProfileController extends Controller
 {
@@ -37,37 +39,45 @@ class ProfileController extends Controller
             'phone_num'  => '-',
             'portfolio'  => '-',
             'department' => '-',
+            'certifications' => [], // ✅ tambahkan default kosong
         ];
 
         if ($user->role === 'inspector' && $user->inspector) {
-            $user->loadMissing('inspector.portfolio.department');
+            $user->loadMissing('inspector.portfolio.department', 'inspector.certifications');
 
-            $data['name']       = $user->inspector->name ?? $data['name'];
-            $data['nip']        = $user->inspector->nip ?? '-';
-            $data['gender']     = $user->inspector->gender ?? '-';
-            $data['phone_num']  = $user->inspector->phone_num ?? '-';
-            $data['portfolio']  = optional($user->inspector->portfolio)->name ?? '-';
-            $data['department'] = optional(optional($user->inspector->portfolio)->department)->name ?? '-';
+            $data['name']           = $user->inspector->name ?? $data['name'];
+            $data['nip']            = $user->inspector->nip ?? '-';
+            $data['gender']         = $user->inspector->gender ?? '-';
+            $data['phone_num']      = $user->inspector->phone_num ?? '-';
+            $data['portfolio']      = optional($user->inspector->portfolio)->name ?? '-';
+            $data['department']     = optional(optional($user->inspector->portfolio)->department)->name ?? '-';
+            $data['certifications'] = $user->inspector->certifications ?? collect();
         }
 
         if ($user->role === 'admin' && $user->admin) {
-            $user->loadMissing('admin.portfolio.department'); // fixed here
+            $user->loadMissing('admin.portfolio.department', 'admin.certifications');
 
-            $data['name']       = $user->admin->name ?? $data['name'];
-            $data['nip']        = $user->admin->nip ?? '-';
-            $data['gender']     = $user->admin->gender ?? '-';
-            $data['phone_num']  = $user->admin->phone_num ?? '-';
-            $data['portfolio']  = optional($user->admin->portfolio)->name ?? '-';
-            $data['department'] = optional(optional($user->admin->portfolio)->department)->name ?? '-';
+            $data['name']           = $user->admin->name ?? $data['name'];
+            $data['nip']            = $user->admin->nip ?? '-';
+            $data['gender']         = $user->admin->gender ?? '-';
+            $data['phone_num']      = $user->admin->phone_num ?? '-';
+            $data['portfolio']      = optional($user->admin->portfolio)->name ?? '-';
+            $data['department']     = optional(optional($user->admin->portfolio)->department)->name ?? '-';
+            $data['certifications'] = $user->admin->certifications ?? collect();
         }
 
-        logger()->info('User admin relasi:', ['admin' => $user->admin]);
         logger()->info('Final data:', $data);
 
+        $data['certifications'] = $data['certifications'] ?? collect();
+
+        $allPortfolios = Portfolio::all();
 
         return $request->expectsJson()
             ? response()->json(['success' => true, 'data' => $data])
-            : view('profile.show', ['profile' => $data]);
+            : view('profile.show', [
+                'profile' => $data,
+                'allPortfolios' => $allPortfolios,
+            ]);
     }
 
     public function update(Request $request)

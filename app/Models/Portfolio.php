@@ -26,4 +26,9 @@ class Portfolio extends Model
     {
         return $this->hasMany(Inspector::class, 'portfolio_id');
     }
+
+    public function certifications()
+    {
+        return $this->hasMany(Certification::class, 'portfolio_id', 'portfolio_id');
+    }
 }
