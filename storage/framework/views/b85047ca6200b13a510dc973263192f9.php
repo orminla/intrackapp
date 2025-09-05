@@ -47,25 +47,45 @@
                 <?php echo csrf_field(); ?>
                 <div class="modal-body modal-body-custom">
                     <div class="row g-3">
+                        <!-- No Surat -->
+                        <div class="col-md-6">
+                            <label class="form-label">No Surat</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="letterNumberInput"
+                                name="letter_number"
+                                placeholder="Masukkan Nomor Surat Permintaan Inspeksi"
+                                required
+                            />
+                            <small
+                                id="letterNumberStatus"
+                                class="d-block mt-1"
+                            ></small>
+                        </div>
+
+                        <!-- Tanggal Surat -->
+                        <div class="col-md-6">
+                            <label class="form-label">Tanggal Surat</label>
+                            <input
+                                type="date"
+                                class="form-control"
+                                id="letterDateInput"
+                                name="letter_date"
+                                readonly
+                            />
+                        </div>
+
                         <!-- Mitra -->
                         <div class="col-md-6">
                             <label class="form-label">Mitra</label>
                             <input
-                                list="partnerList"
+                                type="text"
                                 class="form-control"
-                                name="partner_name"
                                 id="partnerInput"
-                                placeholder="Ketik nama mitra..."
-                                required
+                                name="partner_name"
+                                readonly
                             />
-                            <datalist id="partnerList">
-                                <?php $__currentLoopData = $partners; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $partner): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option
-                                        value="<?php echo e($partner->name); ?>"
-                                        data-address="<?php echo e($partner->address); ?>"
-                                    ></option>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </datalist>
                         </div>
 
                         <!-- Lokasi -->
@@ -76,12 +96,11 @@
                                 class="form-control"
                                 id="locationField"
                                 name="partner_address"
-                                placeholder="Alamat Mitra atau manual"
-                                required
+                                readonly
                             />
                         </div>
 
-                        <!-- Tanggal -->
+                        <!-- Tanggal Inspeksi -->
                         <div class="col-md-6">
                             <label class="form-label">Tanggal Inspeksi</label>
                             <input
@@ -89,7 +108,7 @@
                                 class="form-control"
                                 id="startedDate"
                                 name="started_date"
-                                required
+                                readonly
                             />
                         </div>
 
@@ -119,8 +138,8 @@
                                 type="text"
                                 name="product_name"
                                 class="form-control"
-                                placeholder="Nama Produk"
-                                required
+                                id="productNameInput"
+                                readonly
                             />
                         </div>
 
@@ -157,20 +176,14 @@
                         </div>
 
                         <!-- Detail Produk -->
-                        <div class="col-12">
+                        <div class="col-12" id="productDetailsWrapper">
                             <label class="form-label">Detail Produk</label>
-                            <textarea
-                                name="product_details_raw"
-                                class="form-control"
-                                rows="2"
-                                placeholder="Contoh: Varian A, Varian B, Varian C"
-                                required
-                            ></textarea>
-                            <small class="text-muted">
-                                Pisahkan setiap detail produk dengan tanda koma
-                                (,)
-                            </small>
                         </div>
+                        <input
+                            type="hidden"
+                            name="product_details_raw"
+                            id="productDetailsRaw"
+                        />
                     </div>
                 </div>
 
@@ -199,46 +212,101 @@
         const partnerInput = document.getElementById('partnerInput');
         const locationField = document.getElementById('locationField');
         const formTambahJadwal = document.getElementById('formTambahJadwal');
-        const btnSimpan = document.getElementById('btnSimpanTambahJadwal');
         const modalTambahJadwal = document.getElementById('tambahJadwalModal');
 
         btnReload.disabled = true;
 
+        // 🔹 Batas minimal tanggal inspeksi = hari ini
         const today = new Date().toISOString().split('T')[0];
         startedDateInput.setAttribute('min', today);
 
-        function checkFormValidity() {
-            const requiredFields =
-                formTambahJadwal.querySelectorAll('[required]');
-            let isValid = true;
-            requiredFields.forEach((field) => {
-                if (!field.value.trim()) isValid = false;
-            });
-            if (!inspectorIdInput.value.trim()) isValid = false;
-            btnSimpan.disabled = !isValid;
+        // 🔹 Field nomor surat
+        const letterNumberInput = document.getElementById('letterNumberInput');
+        const letterDateInput = document.getElementById('letterDateInput');
+        const letterNumberStatus =
+            document.getElementById('letterNumberStatus');
+        const detailWrapper = document.getElementById('productDetailsWrapper');
+        const productInput = formTambahJadwal.querySelector(
+            'input[name="product_name"]',
+        );
+
+        function resetLetterFields() {
+            letterNumberStatus.textContent = '';
+            letterNumberStatus.className = '';
+            letterDateInput.value = '';
+            partnerInput.value = '';
+            locationField.value = '';
+            startedDateInput.value = '';
+            productInput.value = '';
+            detailWrapper.innerHTML = `<label class="form-label">Detail Produk</label>`;
         }
 
-        const inputs = formTambahJadwal.querySelectorAll(
-            'input, select, textarea',
-        );
-        inputs.forEach((input) => {
-            input.addEventListener('input', checkFormValidity);
-            input.addEventListener('change', checkFormValidity);
-        });
+        // 🔹 Event fetch otomatis ketika no surat diisi
+        let fetchTimeout;
+        letterNumberInput.addEventListener('input', function () {
+            clearTimeout(fetchTimeout);
+            const noSurat = this.value.trim();
 
-        checkFormValidity();
-
-        partnerInput.addEventListener('input', function () {
-            const val = this.value;
-            const options = document.getElementById('partnerList').options;
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].value === val) {
-                    locationField.value = options[i].dataset.address;
-                    break;
-                }
+            if (!noSurat) {
+                resetLetterFields();
+                return;
             }
+
+            fetchTimeout = setTimeout(() => {
+                fetch(
+                    `https://dummyerp.nirmaladev.my.id/${encodeURIComponent(noSurat)}`,
+                )
+                    .then((res) => res.json())
+                    .then((data) => {
+                        if (data && data.letter_number) {
+                            //surat ditemukan
+                            letterNumberStatus.textContent =
+                                'Surat permintaan inspeksi tersedia';
+                            letterNumberStatus.className =
+                                'text-success d-block mt-1';
+
+                            letterDateInput.value = data.letter_date || '';
+                            partnerInput.value = data.partner_name || '';
+                            locationField.value = data.partner_address || '';
+                            startedDateInput.value = data.started_date || '';
+                            productInput.value = data.product_name || '';
+
+                            detailWrapper.innerHTML = `<label class="form-label">Detail Produk</label>`;
+                            if (Array.isArray(data.product_details)) {
+                                data.product_details.forEach((detail, idx) => {
+                                    const div = document.createElement('div');
+                                    div.classList.add('mb-2');
+                                    const input =
+                                        document.createElement('input');
+                                    input.type = 'text';
+                                    input.name = 'product_details[]';
+                                    input.classList.add('form-control');
+                                    input.value = detail;
+                                    input.placeholder = `Detail Produk ${idx + 1}`;
+                                    div.appendChild(input);
+                                    detailWrapper.appendChild(div);
+                                });
+                            }
+                        } else {
+                            //surat tidak ditemukan
+                            resetLetterFields();
+                            letterNumberStatus.textContent = `Surat permintaan dengan nomor "${noSurat}" tidak ditemukan`;
+                            letterNumberStatus.className =
+                                'text-danger d-block mt-1';
+                        }
+                    })
+                    .catch((err) => {
+                        console.error('Gagal fetch data API:', err);
+                        resetLetterFields();
+                        letterNumberStatus.textContent =
+                            'Gagal mengambil data dari server';
+                        letterNumberStatus.className =
+                            'text-warning d-block mt-1';
+                    });
+            }, 100);
         });
 
+        // 🔹 Update inspector UI
         function updateInspectorUI(data) {
             if (data && data.inspector_id) {
                 inspectorDisplay.value = data.name;
@@ -288,6 +356,7 @@
                 });
         }
 
+        // 🔹 Reload inspector max 2 kali
         let reloadClickCount = 0;
         btnReload.addEventListener('click', function () {
             if (reloadClickCount >= 2) {
@@ -296,10 +365,7 @@
                 return;
             }
 
-            const portfolioId = portfolioSelect.value;
-            const startedDate = startedDateInput.value;
-
-            if (!portfolioId || !startedDate) {
+            if (!portfolioSelect.value || !startedDateInput.value) {
                 alert(
                     'Silakan pilih portofolio dan tanggal inspeksi terlebih dahulu.',
                 );
@@ -310,20 +376,29 @@
             reloadClickCount++;
         });
 
+        // 🔹 Reset modal
         modalTambahJadwal.addEventListener('hidden.bs.modal', function () {
             formTambahJadwal.reset();
+            resetLetterFields();
             inspectorDisplay.value = '';
             inspectorIdInput.value = '';
             quotaText.textContent = 'Ketersediaan: -';
             btnReload.disabled = true;
-            checkFormValidity();
-
-            // Reload halaman ketika modal ditutup
-            location.reload();
+            reloadClickCount = 0;
         });
 
+        // 🔹 Submit form
         formTambahJadwal.addEventListener('submit', function (e) {
             e.preventDefault();
+
+            const detailInputs = document.querySelectorAll(
+                '#productDetailsWrapper input[name="product_details[]"]',
+            );
+            const detailsArray = Array.from(detailInputs)
+                .map((input) => input.value.trim())
+                .filter((v) => v);
+            document.getElementById('productDetailsRaw').value =
+                detailsArray.join(',');
 
             const requiredFields =
                 formTambahJadwal.querySelectorAll('[required]');
@@ -363,22 +438,18 @@
                     return data;
                 })
                 .then((data) => {
-                    // Tutup modal dulu
                     const bsModal =
                         bootstrap.Modal.getInstance(modalTambahJadwal);
                     bsModal.hide();
 
-                    // Reset form & UI
                     this.reset();
+                    resetLetterFields();
                     inspectorDisplay.value = '';
                     inspectorIdInput.value = '';
                     quotaText.textContent = 'Ketersediaan: -';
                     btnReload.disabled = true;
                     reloadClickCount = 0;
-                    checkFormValidity();
 
-                    // Setelah modal tertutup, munculkan SweetAlert
-                    // Gunakan event 'hidden.bs.modal' agar SweetAlert muncul setelah modal benar-benar tertutup
                     modalTambahJadwal.addEventListener(
                         'hidden.bs.modal',
                         function onModalHidden() {
@@ -389,10 +460,8 @@
                                     data.message || 'Jadwal berhasil disimpan!',
                                 timer: 3000,
                                 showConfirmButton: false,
-                            }).then(() => {
-                                location.reload();
-                            });
-                            // Hapus event listener supaya tidak jalan berulang
+                            }).then(() => location.reload());
+
                             modalTambahJadwal.removeEventListener(
                                 'hidden.bs.modal',
                                 onModalHidden,

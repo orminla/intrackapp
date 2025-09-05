@@ -14,6 +14,8 @@ class Schedule extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
+        'letter_number',
+        'letter_date',
         'inspector_id',
         'partner_id',
         'started_date',
@@ -21,6 +23,7 @@ class Schedule extends Model
         'status'
     ];
     protected $casts = [
+        'letter_date' => 'date',
         'started_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

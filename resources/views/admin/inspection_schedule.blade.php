@@ -189,9 +189,9 @@
                                                     data-bs-target="#detailScheduleModal-{{ $index }}"
                                                 >
                                                     <i
-                                                        class="ti ti-edit fs-5 text-warning"
+                                                        class="ti ti-eye fs-5 text-warning"
                                                         data-bs-toggle="tooltip"
-                                                        data-bs-title="Lihat & Ubah"
+                                                        data-bs-title="Lihat"
                                                     ></i>
                                                 </button>
                                             @endif

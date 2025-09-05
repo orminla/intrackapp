@@ -159,6 +159,8 @@ class ScheduleController extends Controller
 
             return [
                 'id' => $schedule->schedule_id,
+                'nomor_surat' => $schedule->letter_number,
+                'tanggal_surat' => $schedule->letter_date->format('Y-m-d'),
                 'tanggal_inspeksi' => $schedule->started_date->format('Y-m-d'),
                 'nama_mitra' => $schedule->partner->name ?? '-',
                 'lokasi' => $schedule->partner->address ?? '-',
@@ -180,6 +182,8 @@ class ScheduleController extends Controller
         $departments = Department::select('department_id', 'name')->get();
         $produkList = Product::select('name')->distinct()->get();
 
+        $allDetailProduk = DetailProduct::select('detail_id', 'name')->get();
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -200,12 +204,13 @@ class ScheduleController extends Controller
             'portfolios' => $portfolios,
             'departments' => $departments,
             'produkList' => $produkList,
+            'allDetailProduk' => $allDetailProduk, // 🔹 tambahkan ini
             'showingSelected' => $showing,
             'filterSelected' => $filter,
-            'search' => $search, // 🔹 supaya search bar tetap isi
+            'search' => $search,
             'showingChangeSelected' => $showingChange,
             'filterChangeSelected' => $filterChange,
-            'searchChange' => $searchChange, // 🔹 supaya search bar change tetap isi
+            'searchChange' => $searchChange,
         ]);
     }
 
@@ -220,6 +225,8 @@ class ScheduleController extends Controller
         }
 
         $validated = $request->validate([
+            'letter_number'       => 'required|string|max:255|unique:schedules,letter_number',
+            'letter_date'         => 'required|date',
             'partner_name'        => 'required|string|max:255',
             'partner_address'     => 'required|string|max:255',
             'started_date'        => 'required|date|after_or_equal:today',
@@ -268,6 +275,8 @@ class ScheduleController extends Controller
         }
 
         $schedule = Schedule::create([
+            'letter_number' => $validated['letter_number'],
+            'letter_date'   => $validated['letter_date'],
             'partner_id'   => $partner->partner_id,
             'inspector_id' => $inspector->inspector_id,
             'started_date' => $validated['started_date'],
@@ -356,13 +365,12 @@ class ScheduleController extends Controller
         }
 
         $validated = $request->validate([
-            'nama_mitra'      => 'required|string|max:255',
-            'lokasi'          => 'required|string|max:255',
+            'nama_mitra' => 'required|string|max:255',
+            'lokasi' => 'required|string|max:255',
             'tanggal_inspeksi' => 'required|date|after_or_equal:today',
-            'portofolio'      => 'required|string|max:255',
-            'produk'          => 'required|string|max:255',
-            'detail_produk'   => 'required|array|min:1',
-            'detail_produk.*' => 'required|string|max:255',
+            'produk' => 'required|string|max:255',
+            'detail_produk' => 'nullable|array',
+            'detail_produk.*' => 'required',
         ]);
 
         $schedule = Schedule::with('inspector')->findOrFail($id);
@@ -375,109 +383,115 @@ class ScheduleController extends Controller
         $partner->address = $validated['lokasi'];
         $partner->save();
 
-        // Portfolio
-        $portfolio = Portfolio::where('name', $validated['portofolio'])->first();
-        if (!$portfolio) {
-            $msg = ['Portofolio tidak ditemukan.'];
-            return $request->expectsJson()
-                ? response()->json(['message' => $msg], 422)
-                : back()->withErrors($msg);
-        }
-
         // Produk
         $currentProduct = Product::find($schedule->product_id);
-        $newProductName = $validated['produk'];
-
-        if ($currentProduct->name !== $newProductName) {
-            $isUsedElsewhere = Schedule::where('product_id', $currentProduct->product_id)
-                ->where('schedule_id', '!=', $schedule->schedule_id)
-                ->exists();
-
-            if ($isUsedElsewhere) {
-                $product = Product::firstOrCreate(['name' => $newProductName]);
-            } else {
-                $currentProduct->name = $newProductName;
-                $currentProduct->save();
-                $product = $currentProduct;
-            }
+        if (!$currentProduct || $currentProduct->name !== $validated['produk']) {
+            $product = Product::firstOrCreate(['name' => $validated['produk']]);
         } else {
             $product = $currentProduct;
         }
 
-        // Detail Produk
-        $existingDetails = $schedule->selectedDetails;
-        $finalDetailIds = [];
-
-        foreach ($validated['detail_produk'] as $i => $newName) {
-            $oldDetail = $existingDetails->get($i);
-
-            if ($oldDetail) {
-                if ($oldDetail->name !== $newName) {
-                    $isDetailUsedElsewhere = DB::table('schedule_details')
-                        ->where('detail_id', $oldDetail->detail_id)
-                        ->where('schedule_id', '!=', $schedule->schedule_id)
-                        ->exists();
-
-                    if ($isDetailUsedElsewhere) {
-                        $newDetail = \App\Models\DetailProduct::firstOrCreate([
-                            'product_id' => $product->product_id,
-                            'name' => $newName,
-                        ]);
-                        $finalDetailIds[] = $newDetail->detail_id;
-                    } else {
-                        $oldDetail->name = $newName;
-                        $oldDetail->save();
-                        $finalDetailIds[] = $oldDetail->detail_id;
-                    }
-                } else {
-                    $finalDetailIds[] = $oldDetail->detail_id;
-                }
+        // Detail produk
+        $detailIds = [];
+        $detailNames = [];
+        foreach ($validated['detail_produk'] ?? [] as $d) {
+            if (is_numeric($d)) {
+                $detailIds[] = $d;
+                $detailNames[] = \App\Models\DetailProduct::find($d)?->name ?? 'Unknown';
             } else {
                 $newDetail = \App\Models\DetailProduct::firstOrCreate([
                     'product_id' => $product->product_id,
-                    'name' => $newName,
+                    'name' => $d,
                 ]);
-                $finalDetailIds[] = $newDetail->detail_id;
+                $detailIds[] = $newDetail->detail_id;
+                $detailNames[] = $newDetail->name;
             }
         }
 
-        // Ganti Petugas jika Portofolio berubah
-        if ($schedule->inspector->portfolio_id !== $portfolio->portfolio_id) {
-            $newInspector = \App\Models\Inspector::where('portfolio_id', $portfolio->portfolio_id)
-                ->withCount(['schedules' => function ($q) {
-                    $q->whereDate('started_date', '>=', now());
-                }])
-                ->orderBy('schedules_count', 'asc')
-                ->first();
-
-            if (!$newInspector) {
-                $msg = ['Tidak ada petugas tersedia untuk portofolio ini.'];
-                return $request->expectsJson()
-                    ? response()->json(['message' => $msg], 422)
-                    : back()->withErrors($msg);
-            }
-
-            $schedule->inspector_id = $newInspector->inspector_id;
-        }
-
-        // Simpan jadwal
-        $schedule->partner_id   = $partner->partner_id;
+        // Update jadwal
+        $schedule->partner_id = $partner->partner_id;
         $schedule->started_date = $validated['tanggal_inspeksi'];
-        $schedule->product_id   = $product->product_id;
+        $schedule->product_id = $product->product_id;
         $schedule->save();
 
-        // Sync detail
-        $schedule->selectedDetails()->sync($finalDetailIds);
+        // Sync detail produk
+        $schedule->selectedDetails()->sync($detailIds);
 
-        // Response
+        // Kirim WhatsApp update jadwal jika ada inspector
+        if ($schedule->inspector) {
+            $this->sendUpdateJadwal(
+                $schedule->inspector,
+                $partner,
+                $product,
+                $detailNames,
+                $validated['tanggal_inspeksi']
+            );
+        }
+
+        // Response untuk AJAX
         if ($request->expectsJson()) {
-            return response()->json([
-                'message' => 'Jadwal berhasil diperbarui.',
-                'data' => $schedule->load('partner', 'product', 'selectedDetails', 'inspector')
-            ]);
+            return response()->json(['message' => 'Jadwal berhasil diperbarui.']);
         }
 
         return redirect()->back()->with('success', 'Jadwal berhasil diperbarui.');
+    }
+
+    protected function sendUpdateJadwal($inspector, $partner, $product, $detail_produk, $tanggal)
+    {
+        try {
+            // Normalisasi nomor WA
+            $phone = preg_replace('/[^0-9]/', '', $inspector->phone_num);
+
+            if (str_starts_with($phone, '0')) {
+                $phone = '62' . substr($phone, 1);
+            }
+
+            if (!preg_match('/^62[0-9]{8,13}$/', $phone)) {
+                Log::warning('Nomor telepon tidak valid', ['phone' => $phone]);
+                return false;
+            }
+
+            // Pesan WA untuk update jadwal
+            $message = "📢 Perubahan Jadwal Inspeksi\n\n"
+                . "Halo *{$inspector->name}*, ada perubahan pada jadwal inspeksi Anda dengan detail sebagai berikut:\n\n"
+                . "*Tanggal* : {$tanggal}\n"
+                . "*Mitra* : {$partner->name}\n"
+                . "*Alamat* : {$partner->address}\n"
+                . "*Produk* : {$product->name}\n"
+                . "*Detail* : " . implode(', ', $detail_produk) . "\n\n"
+                . "Mohon segera cek sistem untuk konfirmasi perubahan jadwal.\n\n"
+                . "Terima kasih,\n"
+                . "InTrack App.";
+
+            // Kirim request ke API Fonnte
+            $response = Http::withHeaders([
+                'Authorization' => 'uf1VVEf2S7DGDWMfS5Ry',
+            ])->post('https://api.fonnte.com/send', [
+                'target'  => $phone,
+                'message' => $message,
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Gagal kirim WhatsApp update jadwal ke petugas', [
+                    'phone'    => $phone,
+                    'response' => $response->body(),
+                ]);
+                return false;
+            }
+
+            Log::info('WhatsApp update jadwal berhasil dikirim ke petugas', [
+                'phone'        => $phone,
+                'inspector_id' => $inspector->inspector_id,
+                'jadwal'       => $tanggal,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Exception saat kirim WA update jadwal', [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function destroy($id)

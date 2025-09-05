@@ -1,32 +1,27 @@
 @push("styles")
     <style>
-        .add-detail-btn {
-            font-size: 0.875rem;
-            padding: 0.375rem 0.75rem;
-            display: none;
+        .detail-schedule .detail-btn-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
         }
 
-        .add-detail-btn i {
-            font-size: 1rem;
-        }
-
-        .modal-lg-scrollable {
-            max-height: 90vh;
-            overflow-y: auto;
+        .detail-schedule .detail-select {
+            min-width: 200px;
         }
     </style>
 @endpush
 
 @foreach ($schedules as $index => $schedule)
     <div
-        class="modal fade"
+        class="modal fade detail-schedule"
         id="detailScheduleModal-{{ $index }}"
         tabindex="-1"
         aria-labelledby="detailScheduleModalLabel-{{ $index }}"
         aria-hidden="true"
     >
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content rounded-4 p-3 modal-lg-scrollable">
+            <div class="modal-content rounded-4 p-3">
                 <form
                     method="POST"
                     action="{{ route("admin.jadwal.update", $schedule["id"]) }}"
@@ -58,12 +53,14 @@
                         <div class="row">
                             @php
                                 $fields = [
+                                    ["label" => "Nomor Surat", "value" => $schedule["nomor_surat"], "name" => "nomor_surat", "readonly" => true],
+                                    ["label" => "Tanggal Surat", "value" => $schedule["tanggal_surat"], "name" => "tanggal_surat", "readonly" => true],
                                     ["label" => "Mitra", "value" => $schedule["nama_mitra"], "name" => "nama_mitra"],
                                     ["label" => "Tanggal Inspeksi", "value" => $schedule["tanggal_inspeksi"], "name" => "tanggal_inspeksi"],
                                     ["label" => "Alamat", "value" => $schedule["lokasi"], "name" => "lokasi"],
-                                    ["label" => "Petugas", "value" => $schedule["nama_petugas"], "name" => "nama_petugas"],
+                                    ["label" => "Petugas", "value" => $schedule["nama_petugas"], "name" => "nama_petugas", "readonly" => true],
                                     ["label" => "Produk", "value" => $schedule["produk"], "name" => "produk"],
-                                    ["label" => "Portofolio", "value" => $schedule["portofolio"], "name" => "portofolio"],
+                                    ["label" => "Portofolio", "value" => $schedule["portofolio"], "name" => "portofolio", "readonly" => true],
                                 ];
                             @endphp
 
@@ -73,67 +70,105 @@
                                         {{ $f["label"] }}
                                     </label>
                                     <input
-                                        type="{{ $f["name"] === "tanggal_inspeksi" ? "date" : "text" }}"
-                                        class="form-control {{ in_array($f["name"], ["nama_petugas", "portofolio"]) ? "text-muted bg-light" : "" }}"
+                                        type="{{ in_array($f["name"], ["tanggal_inspeksi", "tanggal_surat"]) ? "date" : "text" }}"
+                                        class="form-control text-muted bg-light"
                                         name="{{ $f["name"] }}"
                                         value="{{ $f["value"] }}"
-                                        {{ in_array($f["name"], ["nama_petugas", "portofolio"]) ? "readonly" : "readonly required" }}
-                                        id="{{ $f["name"] === "tanggal_inspeksi" ? "tanggalInspeksi-" . $index : "" }}"
+                                        {{ $f["readonly"] ?? false ? "readonly" : "" }}
+                                        id="{{ $f["name"] == "tanggal_inspeksi" ? "tanggalInspeksi-" . $index : "" }}"
                                     />
                                 </div>
                             @endforeach
 
-                            <div class="col-md-12 mt-2">
+                            <div
+                                class="col-md-12 mt-2 d-flex align-items-center justify-content-between"
+                            >
+                                <label class="form-label m-0 mb-2">
+                                    Detail Produk
+                                </label>
                                 <div
-                                    class="d-flex justify-content-between align-items-center mb-2"
+                                    class="detail-btn-wrapper"
+                                    style="display: none"
                                 >
-                                    <label class="form-label m-0">
-                                        Detail Produk
-                                    </label>
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-primary d-flex align-items-center gap-2 add-detail-btn d-none"
-                                        data-form-index="{{ $index }}"
-                                    >
-                                        <i class="ti ti-plus"></i>
-                                        Tambah Detail
-                                    </button>
+                                    <div class="dropdown">
+                                        <button
+                                            class="btn btn-outline-primary dropdown-toggle"
+                                            type="button"
+                                            id="dropdownDetail-{{ $index }}"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            Tambah Detail
+                                        </button>
+                                        <ul
+                                            class="dropdown-menu"
+                                            aria-labelledby="dropdownDetail-{{ $index }}"
+                                        >
+                                            <li>
+                                                <a
+                                                    class="dropdown-item choose-detail"
+                                                    href="#"
+                                                >
+                                                    Pilih dari daftar
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a
+                                                    class="dropdown-item manual-detail"
+                                                    href="#"
+                                                >
+                                                    Tambah manual
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div class="detail-produk-wrapper">
-                                    @forelse ($schedule["detail_produk"] as $detail)
-                                        <div
-                                            class="input-group mb-2 detail-produk-group"
+                            <div class="detail-produk-wrapper">
+                                @php
+                                    $details = is_array($schedule["detail_produk"])
+                                        ? $schedule["detail_produk"]
+                                        : [];
+                                @endphp
+
+                                @forelse ($details as $detail)
+                                    @php
+                                        $detailArr = is_array($detail) ? $detail : ["id" => "", "name" => $detail];
+                                    @endphp
+
+                                    <div
+                                        class="input-group mb-2 detail-produk-group"
+                                    >
+                                        <input
+                                            type="text"
+                                            class="form-control text-muted bg-light"
+                                            name="detail_produk[]"
+                                            value="{{ $detailArr["id"] ?: $detailArr["name"] }}"
+                                            readonly
+                                            required
+                                            data-id="{{ $detailArr["id"] }}"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-danger remove-detail-btn"
+                                            style="display: none"
                                         >
-                                            <input
-                                                type="text"
-                                                class="form-control"
-                                                name="detail_produk[]"
-                                                value="{{ $detail }}"
-                                                required
-                                                readonly
-                                            />
-                                            <button
-                                                type="button"
-                                                class="btn btn-outline-danger remove-detail-btn"
-                                                style="display: none"
-                                            >
-                                                <i class="ti ti-x"></i>
-                                            </button>
-                                        </div>
-                                    @empty
-                                        <div
-                                            class="input-group mb-2 detail-produk-group"
-                                        >
-                                            <input
-                                                type="text"
-                                                class="form-control text-muted"
-                                                value="-"
-                                                disabled
-                                            />
-                                        </div>
-                                    @endforelse
-                                </div>
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                    </div>
+                                @empty
+                                    <div
+                                        class="input-group mb-2 detail-produk-group"
+                                    >
+                                        <input
+                                            type="text"
+                                            class="form-control text-muted"
+                                            value="-"
+                                            readonly
+                                        />
+                                    </div>
+                                @endforelse
                             </div>
                         </div>
                     </div>
@@ -163,132 +198,206 @@
 
 @push("scripts")
     <script>
-        // Toggle edit mode
-        document.querySelectorAll('.toggle-edit-btn').forEach((btn) => {
-            btn.addEventListener('click', function () {
-                const index = this.dataset.formIndex;
-                const form = document.querySelector(
-                    `form[data-form-index="${index}"]`,
-                );
-                const inputs = form.querySelectorAll('input[name]');
-                const saveBtn = form.querySelector('.save-btn');
-                const addDetailBtn = form.querySelector('.add-detail-btn');
-                const wrapper = form.querySelector('.detail-produk-wrapper');
-                const tanggalInspeksiInput = form.querySelector(
-                    `#tanggalInspeksi-${index}`,
-                );
+        const allDetailOptions = @json($allDetailProduk);
 
-                const updateRemoveButtons = () => {
-                    const groups = wrapper.querySelectorAll(
-                        '.detail-produk-group',
+        document.querySelectorAll('.editable-form').forEach((form) => {
+            const modal = form.closest('.modal');
+
+            // Toggle edit
+            form.querySelector('.toggle-edit-btn')?.addEventListener(
+                'click',
+                function () {
+                    const index = this.dataset.formIndex;
+                    const saveBtn = form.querySelector('.save-btn');
+                    const btnWrapper = form.querySelector(
+                        '.detail-btn-wrapper',
                     );
-                    groups.forEach((group) => {
-                        const removeBtn =
-                            group.querySelector('.remove-detail-btn');
-                        if (groups.length > 1) {
-                            removeBtn.style.display = 'inline-block';
-                            removeBtn.disabled = false;
-                        } else {
-                            removeBtn.style.display = 'none';
-                            removeBtn.disabled = true;
+                    const wrapper = form.querySelector(
+                        '.detail-produk-wrapper',
+                    );
+                    const inputs = form.querySelectorAll('input[name]');
+                    const tanggalInput = form.querySelector(
+                        '#tanggalInspeksi-' + index,
+                    );
+
+                    inputs.forEach((input) => {
+                        if (
+                            ![
+                                'nomor_surat',
+                                'tanggal_surat',
+                                'nama_petugas',
+                                'portofolio',
+                            ].includes(input.name)
+                        ) {
+                            input.removeAttribute('readonly');
+                            input.classList.remove('text-muted', 'bg-light');
                         }
                     });
-                };
 
-                inputs.forEach((input) => {
-                    const name = input.getAttribute('name');
-                    if (name !== 'nama_petugas' && name !== 'portofolio') {
-                        input.removeAttribute('readonly');
+                    if (tanggalInput) {
+                        const today = new Date();
+                        tanggalInput.setAttribute(
+                            'min',
+                            today.toISOString().split('T')[0],
+                        );
                     }
-                });
 
-                if (tanggalInspeksiInput) {
-                    const today = new Date();
-                    const yyyy = today.getFullYear();
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    const todayStr = `${yyyy}-${mm}-${dd}`;
-                    tanggalInspeksiInput.setAttribute('min', todayStr);
-                }
+                    btnWrapper.style.display = 'flex';
+                    this.classList.add('d-none');
+                    saveBtn.classList.remove('d-none');
+                    saveBtn.disabled = false;
 
-                this.classList.add('d-none');
-                saveBtn.classList.remove('d-none');
-                saveBtn.disabled = false;
-                addDetailBtn.classList.remove('d-none');
-                addDetailBtn.style.display = 'inline-flex';
+                    const updateRemoveButtons = () => {
+                        wrapper
+                            .querySelectorAll('.detail-produk-group')
+                            .forEach((group) => {
+                                const btn =
+                                    group.querySelector('.remove-detail-btn');
+                                btn.style.display =
+                                    wrapper.querySelectorAll(
+                                        '.detail-produk-group',
+                                    ).length > 1
+                                        ? 'inline-block'
+                                        : 'none';
+                            });
+                    };
 
-                wrapper
-                    .querySelectorAll('.remove-detail-btn')
-                    .forEach((removeBtn) => {
-                        removeBtn.addEventListener('click', function () {
-                            this.closest('.detail-produk-group').remove();
-                            saveBtn.disabled = false;
-                            updateRemoveButtons();
-                        });
-                    });
-
-                if (!addDetailBtn.dataset.bound) {
-                    addDetailBtn.addEventListener('click', function () {
-                        const group = document.createElement('div');
-                        group.className =
-                            'input-group mb-2 detail-produk-group';
-                        group.innerHTML = `
-                        <input type="text" name="detail_produk[]" class="form-control" required />
-                        <button type="button" class="btn btn-outline-danger remove-detail-btn">
-                            <i class="ti ti-x"></i>
-                        </button>
-                    `;
-                        wrapper.appendChild(group);
-                        saveBtn.disabled = false;
-
-                        group
-                            .querySelector('.remove-detail-btn')
-                            .addEventListener('click', function () {
-                                group.remove();
+                    wrapper
+                        .querySelectorAll('.remove-detail-btn')
+                        .forEach((btn) => {
+                            btn.addEventListener('click', function () {
+                                this.closest('.detail-produk-group').remove();
                                 saveBtn.disabled = false;
                                 updateRemoveButtons();
                             });
+                        });
 
-                        updateRemoveButtons();
-                        group.querySelector('input').focus();
-                    });
-                    addDetailBtn.dataset.bound = 'true';
-                }
+                    if (!btnWrapper.dataset.bound) {
+                        // Dropdown detail
+                        btnWrapper
+                            .querySelector('.choose-detail')
+                            .addEventListener('click', (e) => {
+                                e.preventDefault();
+                                const group = document.createElement('div');
+                                group.className =
+                                    'input-group mb-2 detail-produk-group';
+                                group.innerHTML = `
+<select class="form-select detail-select" name="detail_produk[]" required>
+<option value="" disabled selected>Pilih Detail Produk</option>
+${allDetailOptions.map((opt) => `<option value="${opt.detail_id}">${opt.name}</option>`).join('')}
+</select>
+<button type="button" class="btn btn-outline-danger remove-detail-btn"><i class="ti ti-x"></i></button>`;
+                                wrapper.appendChild(group);
+                                group
+                                    .querySelector('.remove-detail-btn')
+                                    .addEventListener('click', () =>
+                                        group.remove(),
+                                    );
+                            });
 
-                updateRemoveButtons();
-            });
-        });
+                        btnWrapper
+                            .querySelector('.manual-detail')
+                            .addEventListener('click', (e) => {
+                                e.preventDefault();
+                                const group = document.createElement('div');
+                                group.className =
+                                    'input-group mb-2 detail-produk-group';
+                                group.innerHTML = `
+<input type="text" class="form-control" name="detail_produk[]" placeholder="Masukkan detail baru" required/>
+<button type="button" class="btn btn-outline-danger remove-detail-btn"><i class="ti ti-x"></i></button>`;
+                                wrapper.appendChild(group);
+                                group
+                                    .querySelector('.remove-detail-btn')
+                                    .addEventListener('click', () =>
+                                        group.remove(),
+                                    );
+                            });
 
-        // Reset form on modal close
-        document.querySelectorAll('.modal').forEach((modal) => {
-            modal.addEventListener('hidden.bs.modal', function () {
-                const form = modal.querySelector('form');
-                if (!form) return;
+                        btnWrapper.dataset.bound = 'true';
+                    }
 
-                const index = form.dataset.formIndex;
+                    updateRemoveButtons();
+                },
+            );
+
+            // AJAX submit + SweetAlert
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
                 const saveBtn = form.querySelector('.save-btn');
-                const editBtn = form.querySelector('.toggle-edit-btn');
-                const addDetailBtn = form.querySelector('.add-detail-btn');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                saveBtn.disabled = true;
+                const formData = new FormData(form);
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector(
+                            'meta[name="csrf-token"]',
+                        ).content,
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                    .then(async (response) => {
+                        const data = await response.json();
+                        if (!response.ok)
+                            throw new Error(
+                                data.message || 'Gagal menyimpan data',
+                            );
+                        return data;
+                    })
+                    .then((data) => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: data.message || 'Jadwal berhasil diperbarui.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            customClass: { popup: 'rounded-4' },
+                            buttonsStyling: false,
+                        });
+                        modalInstance?.hide();
+                        setTimeout(() => location.reload(), 1600);
+                    })
+                    .catch((error) => {
+                        modalInstance?.hide();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text:
+                                error.message ||
+                                'Terjadi kesalahan, silakan periksa data.',
+                            showConfirmButton: true,
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-primary rounded-2 px-4',
+                            },
+                            buttonsStyling: false,
+                            preConfirm: () => {
+                                const m = new bootstrap.Modal(modal);
+                                m.show();
+                            },
+                        });
+                    })
+                    .finally(() => (saveBtn.disabled = false));
+            });
+
+            // Reset modal saat ditutup
+            modal.addEventListener('hidden.bs.modal', function () {
+                const saveBtn = form.querySelector('.save-btn');
+                const toggleBtn = form.querySelector('.toggle-edit-btn');
+                const btnWrapper = form.querySelector('.detail-btn-wrapper');
                 const wrapper = form.querySelector('.detail-produk-wrapper');
-                const tanggalInspeksiInput = form.querySelector(
-                    `#tanggalInspeksi-${index}`,
-                );
 
                 form.querySelectorAll('input[name]').forEach((input) => {
-                    const name = input.getAttribute('name');
-                    if (
-                        name !== 'nama_petugas' &&
-                        name !== 'portofolio' &&
-                        name !== 'tanggal_inspeksi'
-                    ) {
-                        input.setAttribute('readonly', true);
-                    }
+                    input.setAttribute('readonly', true);
+                    input.classList.add('text-muted', 'bg-light');
                 });
-
-                if (tanggalInspeksiInput) {
-                    tanggalInspeksiInput.setAttribute('readonly', true);
-                    tanggalInspeksiInput.removeAttribute('min');
-                }
 
                 const originalDetails = JSON.parse(
                     form.dataset.originalDetail || '[]',
@@ -299,241 +408,23 @@
                         const group = document.createElement('div');
                         group.className =
                             'input-group mb-2 detail-produk-group';
-                        group.innerHTML = `
-                        <input type="text" class="form-control" name="detail_produk[]" value="${detail}" readonly required>
-                        <button type="button" class="btn btn-outline-danger remove-detail-btn" style="display: none">
-                            <i class="ti ti-x"></i>
-                        </button>
-                    `;
+                        const detailArr =
+                            isNaN(detail) && typeof detail === 'string'
+                                ? { id: '', name: detail }
+                                : detail;
+                        group.innerHTML = `<input type="text" class="form-control text-muted bg-light" name="detail_produk[]" value="${detailArr.name}" readonly required data-id="${detailArr.id}"/>
+<button type="button" class="btn btn-outline-danger remove-detail-btn" style="display:none"><i class="ti ti-x"></i></button>`;
                         wrapper.appendChild(group);
                     });
                 } else {
-                    wrapper.innerHTML = `<input type="text" class="form-control text-muted" value="-" disabled />`;
+                    wrapper.innerHTML = `<input type="text" class="form-control text-muted" value="-" readonly />`;
                 }
 
-                editBtn.classList.remove('d-none');
+                toggleBtn.classList.remove('d-none');
                 saveBtn.classList.add('d-none');
                 saveBtn.disabled = true;
-                addDetailBtn.classList.add('d-none');
-                addDetailBtn.style.display = 'none';
-            });
-        });
-
-        // submit form ajax
-        document.querySelectorAll('.editable-form').forEach((form) => {
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const currentForm = this;
-                const modalEl = currentForm.closest('.modal');
-                let modalInstance = bootstrap.Modal.getInstance(modalEl);
-
-                // Tutup modal dulu kalau ada
-                if (modalInstance) modalInstance.hide();
-
-                modalEl.addEventListener(
-                    'hidden.bs.modal',
-                    function onHidden() {
-                        modalEl.removeEventListener(
-                            'hidden.bs.modal',
-                            onHidden,
-                        );
-
-                        Swal.fire({
-                            title: 'Konfirmasi',
-                            text: 'Simpan perubahan jadwal inspeksi?',
-                            icon: 'question',
-                            showCancelButton: true,
-                            confirmButtonText: 'Ya, simpan',
-                            cancelButtonText: 'Batal',
-                            customClass: {
-                                popup: 'rounded-4',
-                                confirmButton: 'btn btn-primary px-4 me-2',
-                                cancelButton: 'btn btn-outline-danger px-4',
-                            },
-                            buttonsStyling: false,
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                const formData = new FormData(currentForm);
-                                fetch(currentForm.action, {
-                                    method: currentForm.method,
-                                    headers: {
-                                        'X-CSRF-TOKEN': document.querySelector(
-                                            'meta[name="csrf-token"]',
-                                        ).content,
-                                        Accept: 'application/json',
-                                    },
-                                    body: formData,
-                                })
-                                    .then(async (response) => {
-                                        const data = await response.json();
-                                        if (!response.ok)
-                                            throw new Error(
-                                                data.message ||
-                                                    'Gagal menyimpan data',
-                                            );
-                                        return data;
-                                    })
-                                    .then((data) => {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'Berhasil',
-                                            text:
-                                                data.message ||
-                                                'Jadwal berhasil diperbarui.',
-                                            timer: 3000,
-                                            showConfirmButton: false,
-                                            customClass: { popup: 'rounded-4' },
-                                        }).then(() => location.reload());
-                                    })
-                                    .catch((err) => {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Gagal',
-                                            text:
-                                                err.message ||
-                                                'Terjadi kesalahan saat menyimpan.',
-                                            customClass: { popup: 'rounded-4' },
-                                        });
-                                    });
-                            } else if (
-                                result.dismiss === Swal.DismissReason.cancel
-                            ) {
-                                // Buka lagi modal
-                                if (!modalInstance) {
-                                    modalInstance = new bootstrap.Modal(
-                                        modalEl,
-                                    );
-                                }
-                                modalInstance.show();
-
-                                // SET FORM KE MODE EDIT (seperti tombol Edit ditekan)
-                                const inputs =
-                                    currentForm.querySelectorAll('input[name]');
-                                const saveBtn =
-                                    currentForm.querySelector('.save-btn');
-                                const editBtn =
-                                    currentForm.querySelector(
-                                        '.toggle-edit-btn',
-                                    );
-                                const addDetailBtn =
-                                    currentForm.querySelector(
-                                        '.add-detail-btn',
-                                    );
-                                const wrapper = currentForm.querySelector(
-                                    '.detail-produk-wrapper',
-                                );
-                                const tanggalInspeksiInput =
-                                    currentForm.querySelector(
-                                        `#tanggalInspeksi-${currentForm.dataset.formIndex}`,
-                                    );
-
-                                // Buka semua input kecuali 'nama_petugas' dan 'portofolio'
-                                inputs.forEach((input) => {
-                                    const name = input.getAttribute('name');
-                                    if (
-                                        name !== 'nama_petugas' &&
-                                        name !== 'portofolio'
-                                    ) {
-                                        input.removeAttribute('readonly');
-                                    }
-                                });
-
-                                // Set minimal tanggal inspeksi hari ini (atau tanggal sebelumnya jika sudah ada)
-                                if (tanggalInspeksiInput) {
-                                    const now = new Date()
-                                        .toISOString()
-                                        .slice(0, 10);
-                                    const currentVal =
-                                        tanggalInspeksiInput.value || now;
-                                    tanggalInspeksiInput.removeAttribute(
-                                        'readonly',
-                                    );
-                                    tanggalInspeksiInput.setAttribute(
-                                        'min',
-                                        now,
-                                    );
-                                    if (!tanggalInspeksiInput.value) {
-                                        tanggalInspeksiInput.value = currentVal;
-                                    }
-                                }
-
-                                // Show save button, hide edit button
-                                if (saveBtn) {
-                                    saveBtn.classList.remove('d-none');
-                                    saveBtn.disabled = false;
-                                }
-                                if (editBtn) {
-                                    editBtn.classList.add('d-none');
-                                }
-
-                                // Show add detail button
-                                if (addDetailBtn) {
-                                    addDetailBtn.classList.remove('d-none');
-                                    addDetailBtn.style.display = 'inline-flex';
-
-                                    // Bind add detail btn event if not yet bound
-                                    if (!addDetailBtn.dataset.bound) {
-                                        addDetailBtn.addEventListener(
-                                            'click',
-                                            function () {
-                                                const group =
-                                                    document.createElement(
-                                                        'div',
-                                                    );
-                                                group.className =
-                                                    'input-group mb-2 detail-produk-group';
-                                                group.innerHTML = `
-                                    <input type="text" name="detail_produk[]" class="form-control" required />
-                                    <button type="button" class="btn btn-outline-danger remove-detail-btn">
-                                        <i class="ti ti-x"></i>
-                                    </button>
-                                `;
-                                                wrapper.appendChild(group);
-                                                saveBtn.disabled = false;
-
-                                                group
-                                                    .querySelector(
-                                                        '.remove-detail-btn',
-                                                    )
-                                                    .addEventListener(
-                                                        'click',
-                                                        function () {
-                                                            group.remove();
-                                                            saveBtn.disabled = false;
-                                                            // Update remove buttons logic if any
-                                                        },
-                                                    );
-                                            },
-                                        );
-                                        addDetailBtn.dataset.bound = 'true';
-                                    }
-                                }
-
-                                // Setup remove buttons visible if more than one detail
-                                const updateRemoveButtons = () => {
-                                    const groups = wrapper.querySelectorAll(
-                                        '.detail-produk-group',
-                                    );
-                                    groups.forEach((group) => {
-                                        const removeBtn =
-                                            group.querySelector(
-                                                '.remove-detail-btn',
-                                            );
-                                        if (groups.length > 1) {
-                                            removeBtn.style.display =
-                                                'inline-block';
-                                            removeBtn.disabled = false;
-                                        } else {
-                                            removeBtn.style.display = 'none';
-                                            removeBtn.disabled = true;
-                                        }
-                                    });
-                                };
-                                updateRemoveButtons();
-                            }
-                        });
-                    },
-                );
+                btnWrapper.style.display = 'none';
+                delete btnWrapper.dataset.bound;
             });
         });
     </script>
