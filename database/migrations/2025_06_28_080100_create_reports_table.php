@@ -15,6 +15,8 @@ return new class extends Migration
             $table->bigIncrements('report_id');
             $table->unsignedBigInteger('schedule_id');
             $table->date('finished_date');
+            $table->date('postponed_date')->nullable();
+            $table->text('postponed_reason')->nullable();
 
             $table->enum('status', [
                 'Disetujui',
@@ -22,8 +24,7 @@ return new class extends Migration
                 'Menunggu Konfirmasi',
             ])->default('Menunggu Konfirmasi');
 
-            $table->text('rejection_reason')->nullable(); // ← Tambahkan ini
-
+            $table->text('rejection_reason')->nullable();
             $table->timestamps();
 
             $table->foreign('schedule_id')

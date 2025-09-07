@@ -93,14 +93,15 @@
                         value="{{ $profile["inspector_id"] ?? "" }}"
                     />
 
-                    <!-- Portofolio terkait (opsional) -->
+                    <!-- Portofolio terkait -->
                     <div class="mb-3">
                         <label class="form-label">Portofolio</label>
                         <select
                             name="portfolio_id"
                             class="form-select rounded-2 bg-white"
+                            required
                         >
-                            <option value="">Tidak terkait</option>
+                            <option value="">Pilih Portofolio</option>
                             @foreach ($allPortfolios as $portfolio)
                                 <option value="{{ $portfolio->portfolio_id }}">
                                     {{ $portfolio->name }}
@@ -132,9 +133,12 @@
         const form = modal.querySelector('form');
         const submitBtn = form.querySelector('button[type="submit"]');
 
+        let isSubmitted = false; // 🔑 flag
+
         function checkFormValidity() {
-            // hanya cek input wajib
-            const requiredElements = form.querySelectorAll('input[required]');
+            const requiredElements = form.querySelectorAll(
+                'input[required], select[required]',
+            );
             for (const el of requiredElements) {
                 if (!el.value || el.value.trim() === '') return false;
             }
@@ -145,7 +149,6 @@
             submitBtn.disabled = !checkFormValidity();
         }
 
-        // Update tombol submit saat input/change
         const requiredElements = form.querySelectorAll(
             'input[required], select[required]',
         );
@@ -155,6 +158,21 @@
         });
 
         submitBtn.disabled = true;
+
+        // Kalau modal tambah sertif ditutup, buka modal edit profil (kecuali habis submit)
+        modal.addEventListener('hidden.bs.modal', function () {
+            if (isSubmitted) {
+                isSubmitted = false; // reset flag
+                return;
+            }
+            const editProfileModal =
+                document.getElementById('editProfileModal');
+            if (editProfileModal) {
+                const ep =
+                    bootstrap.Modal.getOrCreateInstance(editProfileModal);
+                ep.show();
+            }
+        });
 
         // AJAX Submit + SweetAlert
         form.addEventListener('submit', function (e) {
@@ -195,11 +213,17 @@
                         customClass: { popup: 'rounded-4' },
                         buttonsStyling: false,
                     });
-                    if (modalInstance) modalInstance.hide();
+                    if (modalInstance) {
+                        isSubmitted = true; // ✅ tandai kalau submit sukses
+                        modalInstance.hide();
+                    }
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
-                    if (modalInstance) modalInstance.hide();
+                    if (modalInstance) {
+                        isSubmitted = true; // ✅ tandai juga kalau submit gagal (biar gak auto open edit modal)
+                        modalInstance.hide();
+                    }
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal!',

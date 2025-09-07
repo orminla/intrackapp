@@ -127,6 +127,10 @@ class ProfileController extends Controller
             'photo_url' => $validated['photo_url'] ?? $user->photo_url,
         ])->save();
 
+        if ($request->has('deleted_certifications')) {
+            Certification::whereIn('certification_id', $request->deleted_certifications)->delete();
+        }
+
         if ($user->role === 'admin' && $user->admin) {
             $user->admin->fill([
                 'name'      => $validated['name']      ?? $user->admin->name,

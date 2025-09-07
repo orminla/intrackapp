@@ -1,12 +1,3 @@
-<?php $__env->startPush("styles"); ?>
-    <style>
-        .modal-lg-scrollable {
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-    </style>
-<?php $__env->stopPush(); ?>
-
 <?php $__currentLoopData = $reports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $schedule): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
     <div
         class="modal fade"
@@ -16,7 +7,7 @@
         aria-hidden="true"
     >
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content rounded-4 p-3 modal-lg-scrollable">
+            <div class="modal-content rounded-4 p-3">
                 <form
                     method="POST"
                     action="<?php echo e(route("inspector.jadwal.update", $schedule["id"])); ?>"
@@ -43,6 +34,22 @@
 
                     <div class="modal-body pt-2 mt-2 text-start">
                         <div class="row">
+                            <?php if(! empty($schedule["alasan_penolakan"])): ?>
+                                <div class="col-12 mb-3 rejection-reason">
+                                    <label class="form-label fw-semibold">
+                                        Alasan Penolakan
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        rows="3"
+                                        readonly
+                                        style="resize: none"
+                                    >
+<?php echo e($schedule["alasan_penolakan"]); ?></textarea
+                                    >
+                                </div>
+                            <?php endif; ?>
+
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Mitra</label>
                                 <input
@@ -63,7 +70,7 @@
                                 />
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Tanggal Mulai</label>
                                 <input
                                     type="date"
@@ -74,7 +81,7 @@
                                 />
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">
                                     Tanggal Selesai
                                 </label>
@@ -86,6 +93,31 @@
                                     readonly
                                     id="tanggalSelesai-jadwal-<?php echo e($i); ?>"
                                 />
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Tanggal Tunda</label>
+                                <input
+                                    type="date"
+                                    class="form-control tanggal-tunda-input"
+                                    name="tanggal_tunda"
+                                    value="<?php echo e($schedule["tanggal_tunda"]); ?>"
+                                    readonly
+                                />
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Alasan Tunda</label>
+                                <textarea
+                                    class="form-control keterangan-tunda-input"
+                                    name="keterangan_tunda"
+                                    rows="2"
+                                    placeholder="Masukkan alasan penundaan (jika ada)"
+                                    readonly
+                                    style="resize: none"
+                                >
+<?php echo e($schedule["keterangan_tunda"]); ?></textarea
+                                >
                             </div>
 
                             <div class="col-md-12 mb-3">
@@ -114,14 +146,24 @@
                                 <label class="form-label">
                                     Dokumen (PDF/JPG/PNG)
                                 </label>
-                                <input
-                                    type="file"
-                                    class="form-control dokumen-input d-none"
-                                    name="dokumen[]"
-                                    multiple
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    id="dokumenInput-jadwal-<?php echo e($i); ?>"
-                                />
+
+                                <div
+                                    class="input-group dokumen-upload-wrapper mb-2 d-none"
+                                >
+                                    <input
+                                        type="file"
+                                        class="form-control dokumen-input"
+                                        name="dokumen[]"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        multiple
+                                    />
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-primary tambah-dokumen-btn"
+                                    >
+                                        Tambah
+                                    </button>
+                                </div>
 
                                 <div class="dokumen-wrapper mt-2">
                                     <?php $__currentLoopData = $schedule["dokumen"]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $doc): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -132,7 +174,6 @@
                                                 href="<?php echo e(url("storage/" . $doc["path"])); ?>"
                                                 target="_blank"
                                                 class="form-control text-decoration-underline"
-                                                readonly
                                             >
                                                 <?php echo e($doc["name"]); ?>
 
@@ -170,7 +211,6 @@
                             type="submit"
                             class="btn btn-success w-100 d-none save-btn mt-2"
                             data-form-index="jadwal-<?php echo e($i); ?>"
-                            disabled
                         >
                             Simpan
                         </button>
@@ -183,29 +223,9 @@
 
 <?php $__env->startPush("scripts"); ?>
     <script>
-        function validateForm(form) {
-            const tanggalInput = form.querySelector('.tanggal-selesai-input');
-            const dokumenBaru = form.querySelectorAll(
-                '.dokumen-baru-preview',
-            ).length;
-            const dokumenLamaAktif = form.querySelectorAll(
-                '.dokumen-group:not([style*="display: none"])',
-            ).length;
-            const tanggalBerubah =
-                tanggalInput.value !== tanggalInput.dataset.original;
-            const saveBtn = form.querySelector('.save-btn');
+        const MAX_DOKUMEN = 3;
 
-            if (
-                (tanggalBerubah && tanggalInput.value) ||
-                dokumenBaru > 0 ||
-                dokumenLamaAktif > 0
-            ) {
-                saveBtn.disabled = false;
-            } else {
-                saveBtn.disabled = true;
-            }
-        }
-
+        // Toggle edit
         document.querySelectorAll('.toggle-edit-btn').forEach((btn) => {
             btn.addEventListener('click', function () {
                 const index = this.dataset.formIndex;
@@ -213,177 +233,227 @@
                     `form[data-form-index="${index}"]`,
                 );
                 const saveBtn = form.querySelector('.save-btn');
-                const dokumenInput = form.querySelector('.dokumen-input');
+                const dokumenInputWrapper = form.querySelector(
+                    '.dokumen-upload-wrapper',
+                );
+
+                // Buka tanggal selesai
                 const tanggalSelesaiInput = form.querySelector(
                     `#tanggalSelesai-${index}`,
                 );
-
-                tanggalSelesaiInput.dataset.original =
-                    tanggalSelesaiInput.value;
                 tanggalSelesaiInput.removeAttribute('readonly');
                 tanggalSelesaiInput.setAttribute(
                     'min',
-                    form.querySelector('input[name="tanggal_mulai"]')?.value ??
+                    form.querySelector('input[name="tanggal_mulai"]').value ??
                         '',
                 );
 
-                dokumenInput.classList.remove('d-none');
+                // Buka tanggal tunda & keterangan tunda
+                const tanggalTundaInput = form.querySelector(
+                    'input[name="tanggal_tunda"]',
+                );
+                if (tanggalTundaInput)
+                    tanggalTundaInput.removeAttribute('readonly');
+
+                const keteranganTundaInput = form.querySelector(
+                    'textarea[name="keterangan_tunda"]',
+                );
+                if (keteranganTundaInput)
+                    keteranganTundaInput.removeAttribute('readonly');
+
+                // Buka dokumen
+                dokumenInputWrapper.classList.remove('d-none');
                 form.querySelectorAll('.remove-dokumen-btn').forEach(
-                    (btn) => (btn.style.display = 'inline-block'),
+                    (b) => (b.style.display = 'inline-block'),
                 );
 
-                saveBtn.disabled = true;
-                saveBtn.classList.remove('d-none');
+                saveBtn.classList.remove('d-none'); // tombol Simpan muncul langsung
                 this.classList.add('d-none');
-
-                tanggalSelesaiInput.addEventListener('input', () =>
-                    validateForm(form),
-                );
-                dokumenInput.addEventListener('change', () =>
-                    validateForm(form),
-                );
             });
         });
 
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('.remove-dokumen-btn')) {
-                const group = e.target.closest('.dokumen-group');
-                const checkbox = group.querySelector('.dokumen-checkbox');
-                if (checkbox) checkbox.checked = true;
-                group.style.display = 'none';
-                validateForm(group.closest('form'));
-            }
-            if (e.target.closest('.remove-dokumen-baru-btn')) {
-                const group = e.target.closest('.dokumen-group');
-                group.remove();
-                validateForm(group.closest('form'));
-            }
-        });
+        // Tambah dokumen baru
+        document.querySelectorAll('.tambah-dokumen-btn').forEach((btn) => {
+            btn.addEventListener('click', function () {
+                const wrapper = this.closest('.dokumen-upload-wrapper');
+                const input = wrapper.querySelector('.dokumen-input');
+                const form = wrapper.closest('form');
+                const dokumenWrapper = form.querySelector('.dokumen-wrapper');
 
-        document.querySelectorAll('.dokumen-input').forEach((input) => {
-            input.addEventListener('change', function () {
-                const form = this.closest('form');
-                const wrapper = form.querySelector('.dokumen-wrapper');
-                wrapper
-                    .querySelectorAll('.dokumen-baru-preview')
-                    .forEach((el) => el.remove());
+                if (!input.files.length) return;
 
-                Array.from(this.files).forEach((file) => {
-                    const group = document.createElement('div');
-                    group.className =
-                        'input-group mb-2 dokumen-group dokumen-baru-preview';
-                    group.innerHTML = `
-                    <input type="text" class="form-control" value="${file.name.replace(/</g, '&lt;').replace(/>/g, '&gt;')}" readonly>
-                    <button type="button" class="btn btn-outline-danger remove-dokumen-baru-btn">
-                        <i class="ti ti-x"></i>
-                    </button>`;
-                    wrapper.appendChild(group);
-                });
-                validateForm(form);
-            });
-        });
-
-        document.querySelectorAll('.modal').forEach((modal) => {
-            modal.addEventListener('hidden.bs.modal', function () {
-                const form = modal.querySelector('form');
-                const index = form.dataset.formIndex;
-                const saveBtn = form.querySelector('.save-btn');
-                const editBtn = form.querySelector('.toggle-edit-btn');
-                const tanggalSelesaiInput = form.querySelector(
-                    `#tanggalSelesai-${index}`,
-                );
-                const dokumenInput = form.querySelector('.dokumen-input');
-                const wrapper = form.querySelector('.dokumen-wrapper');
-
-                tanggalSelesaiInput.setAttribute('readonly', true);
-                tanggalSelesaiInput.removeAttribute('min');
-                dokumenInput.classList.add('d-none');
-                dokumenInput.value = '';
-
-                form.querySelectorAll('.dokumen-group').forEach((group) => {
-                    group.style.display = 'flex';
-                    group.querySelector('.remove-dokumen-btn').style.display =
-                        'none';
-                    group.querySelector('.dokumen-checkbox').checked = false;
-                });
-
-                wrapper
-                    .querySelectorAll('.dokumen-baru-preview')
-                    .forEach((el) => el.remove());
-                saveBtn.classList.add('d-none');
-                saveBtn.disabled = true;
-                editBtn.classList.remove('d-none');
-            });
-        });
-
-        document.querySelectorAll('.editable-form').forEach((form) => {
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                const modalEl = form.closest('.modal');
-                const modalId = modalEl.getAttribute('id');
-                const modalInstance = bootstrap.Modal.getInstance(modalEl);
-
-                const dokumenAktif = form.querySelectorAll(
+                const existingCount = dokumenWrapper.querySelectorAll(
                     '.dokumen-group:not([style*="display: none"])',
                 ).length;
-                const dokumenBaru = form.querySelectorAll(
-                    '.dokumen-baru-preview',
-                ).length;
-
-                if (dokumenAktif + dokumenBaru === 0) {
+                if (existingCount + input.files.length > MAX_DOKUMEN) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Dokumen diperlukan',
-                        text: 'Minimal satu dokumen harus ada sebelum menyimpan.',
+                        title: 'Batas dokumen',
+                        text: `Maksimal ${MAX_DOKUMEN} dokumen per laporan.`,
                         confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'rounded-4',
-                            confirmButton: 'btn btn-primary rounded-2 px-4',
-                        },
-                        buttonsStyling: false,
                     });
                     return;
                 }
 
-                // Tutup modal dulu
-                modalInstance.hide();
+                // Tambah preview di DOM
+                Array.from(input.files).forEach((file) => {
+                    const group = document.createElement('div');
+                    group.className =
+                        'input-group mb-2 dokumen-group dokumen-baru-preview';
+                    group.innerHTML = `
+                <input type="text" class="form-control" value="${file.name}" readonly>
+                <button type="button" class="btn btn-outline-danger remove-dokumen-baru-btn">
+                    <i class="ti ti-x"></i>
+                </button>
+            `;
+                    dokumenWrapper.appendChild(group);
+                });
 
-                // Tunggu animasi tutup selesai
-                setTimeout(() => {
-                    Swal.fire({
-                        title: 'Konfirmasi',
-                        text: 'Apakah Anda yakin ingin menyimpan perubahan ini?',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Ya, Simpan',
-                        cancelButtonText: 'Batal',
-                        customClass: {
-                            popup: 'rounded-4',
-                            confirmButton:
-                                'btn btn-success rounded-2 px-4 me-2',
-                            cancelButton: 'btn btn-light rounded-2 px-4',
+                validateForm(form);
+            });
+        });
+
+        // Hapus dokumen baru
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-dokumen-baru-btn')) {
+                const group = e.target.closest('.dokumen-group');
+                const form = group.closest('form');
+                const input = form.querySelector('.dokumen-input');
+
+                const dt = new DataTransfer();
+                Array.from(input.files)
+                    .filter(
+                        (f) =>
+                            f.name !==
+                            group.querySelector('input[type="text"]').value,
+                    )
+                    .forEach((f) => dt.items.add(f));
+                input.files = dt.files;
+
+                group.remove();
+                validateForm(form);
+            }
+        });
+
+        // Hapus dokumen lama
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-dokumen-btn')) {
+                const btn = e.target.closest('.remove-dokumen-btn');
+                const group = btn.closest('.dokumen-group');
+                const checkbox = group.querySelector('.dokumen-checkbox');
+                checkbox.checked = !checkbox.checked;
+                group.style.display = checkbox.checked ? 'none' : 'flex';
+                validateForm(group.closest('form'));
+            }
+        });
+
+        // Submit dengan konfirmasi
+        const csrfToken = document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute('content');
+
+        document.querySelectorAll('.editable-form').forEach((form) => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const modalEl = form.closest('.modal');
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+
+                Swal.fire({
+                    title: 'Konfirmasi',
+                    text: 'Apakah Anda yakin ingin menyimpan perubahan ini?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Simpan',
+                    cancelButtonText: 'Batal',
+                    customClass: {
+                        popup: 'rounded-4',
+                        confirmButton: 'btn btn-success rounded-2 px-4 me-2',
+                        cancelButton: 'btn btn-light rounded-2 px-4',
+                    },
+                    buttonsStyling: false,
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    let formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
                         },
-                        buttonsStyling: false,
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            form.submit();
+                        body: formData,
+                    })
+                        .then((res) => res.json())
+                        .then((data) => {
+                            if (data.success) {
+                                modalInstance.hide();
+
+                                // SweetAlert sukses otomatis hilang
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil diperbarui',
+                                    text: data.message,
+                                    timer: 2000, // muncul 2 detik
+                                    showConfirmButton: false,
+                                    timerProgressBar: true,
+                                    customClass: {
+                                        popup: 'rounded-4',
+                                    },
+                                }).then(() => {
+                                    location.reload();
+                                });
+
+                                // Opsional: update DOM / table setelah berhasil
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal',
+                                    text: data.message || 'Terjadi kesalahan',
+                                    confirmButtonText: 'OK',
+                                });
+                            }
+                        })
+                        .catch((err) => {
+                            console.error(err);
                             Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil',
-                                text: 'Perubahan berhasil disimpan.',
-                                timer: 2000,
-                                showConfirmButton: false,
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: 'Terjadi kesalahan saat mengirim data.',
+                                confirmButtonText: 'OK',
                             });
-                        } else {
-                            // Kalau batal → buka modal lagi
-                            const reopenModal = new bootstrap.Modal(
-                                document.getElementById(modalId),
-                            );
-                            reopenModal.show();
-                        }
-                    });
-                }, 400); // jeda biar animasi close Bootstrap kelar
+                        });
+                });
+            });
+        });
+
+        // Reset modal saat ditutup
+        document.querySelectorAll('.modal').forEach((modal) => {
+            modal.addEventListener('hidden.bs.modal', () => {
+                const form = modal.querySelector('form');
+                const saveBtn = form.querySelector('.save-btn');
+                const editBtn = form.querySelector('.toggle-edit-btn');
+                const tanggalSelesaiInput = form.querySelector(
+                    '.tanggal-selesai-input',
+                );
+                const dokumenInputWrapper = form.querySelector(
+                    '.dokumen-upload-wrapper',
+                );
+                const wrapper = form.querySelector('.dokumen-wrapper');
+
+                tanggalSelesaiInput.setAttribute('readonly', true);
+                tanggalSelesaiInput.removeAttribute('min');
+                dokumenInputWrapper.classList.add('d-none');
+
+                // Hanya hapus preview baru, file tetap ada
+                wrapper
+                    .querySelectorAll('.dokumen-baru-preview')
+                    .forEach((el) => el.remove());
+
+                // Reset tombol
+                saveBtn.classList.add('d-none');
+                saveBtn.disabled = true;
+                editBtn.classList.remove('d-none');
             });
         });
     </script>

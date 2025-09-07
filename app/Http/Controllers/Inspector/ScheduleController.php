@@ -99,6 +99,9 @@ class ScheduleController extends Controller
                     'status' => $isReport && $schedule->report ? $schedule->report->status : $schedule->status,
                     'dokumen' => $dokumen,
                     'detail_produk' => $schedule->selectedDetails->pluck('name')->toArray(),
+                    'tanggal_tunda' => $schedule->report ? ($schedule->report->postponed_date ? Carbon::parse($schedule->report->postponed_date)->format('Y-m-d') : null) : null,
+                    'keterangan_tunda' => $schedule->report ? $schedule->report->postponed_reason : null,
+                    'alasan_penolakan' => $schedule->report ? $schedule->report->rejection_reason : null,
                 ];
             });
         };
@@ -128,10 +131,12 @@ class ScheduleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'schedule_id' => 'required|exists:schedules,schedule_id',
-            'tanggal_selesai' => 'required|date',
-            'dokumentasi' => 'required|array|min:1|max:3',
-            'dokumentasi.*' => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'schedule_id'      => 'required|exists:schedules,schedule_id',
+            'tanggal_selesai'  => 'required|date',
+            'tanggal_tunda'    => 'nullable|date|after_or_equal:schedules.schedule_date',
+            'keterangan_tunda' => 'nullable|string|max:500',
+            'dokumentasi'      => 'required|array|min:1|max:3',
+            'dokumentasi.*'    => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
         $user = Auth::user();
@@ -139,9 +144,11 @@ class ScheduleController extends Controller
 
         // Buat laporan
         $report = Report::create([
-            'schedule_id'   => $schedule->schedule_id,
-            'finished_date' => $request->tanggal_selesai,
-            'status'        => 'Menunggu konfirmasi',
+            'schedule_id'      => $schedule->schedule_id,
+            'finished_date'    => $request->tanggal_selesai,
+            'postponed_date'   => $request->tanggal_tunda,
+            'postponed_reason' => $request->keterangan_tunda,
+            'status'           => 'Menunggu Konfirmasi',
         ]);
 
         // Simpan dokumentasi
@@ -181,58 +188,68 @@ class ScheduleController extends Controller
         $user = Auth::user();
 
         if ($user->role !== 'inspector') {
-            return $request->expectsJson()
-                ? response()->json(['message' => 'Unauthorized'], 403)
-                : abort(403, 'Hanya petugas yang dapat mengubah laporan.');
+            return response()->json(['success' => false, 'message' => 'Hanya petugas yang dapat mengubah laporan.'], 403);
         }
 
-        // Validasi input
-        $validated = $request->validate([
-            'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_inspeksi',
-            'dokumen'           => 'nullable|array',
-            'dokumen.*'         => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-            'hapus_dokumen'     => 'nullable|array',
-            'hapus_dokumen.*'   => 'integer|exists:documents,doc_id',
-        ]);
-
-        // Ambil jadwal & laporan
         $schedule = Schedule::with('report.documents')->findOrFail($id);
         $report = $schedule->report;
 
         if (!$report) {
-            return redirect()->back()->withErrors('Laporan tidak ditemukan untuk jadwal ini.');
+            return response()->json(['success' => false, 'message' => 'Laporan tidak ditemukan.'], 404);
         }
 
-        // Update tanggal selesai & status
-        $report->finished_date = $validated['tanggal_selesai'];
-        $report->status = 'Menunggu konfirmasi';
+        $validated = $request->validate([
+            'tanggal_selesai'   => 'nullable|date|after_or_equal:' . $schedule->started_date,
+            'tanggal_tunda'     => 'nullable|date|before_or_equal:' . ($request->tanggal_selesai ?? $schedule->finished_date),
+            'keterangan_tunda'  => 'nullable|string|max:255',
+            'dokumen.*'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5048',
+            'hapus_dokumen'     => 'nullable|array',
+            'hapus_dokumen.*'   => 'integer|exists:documents,doc_id',
+        ]);
+
+        if (!empty($validated['tanggal_selesai'])) {
+            $report->finished_date = $validated['tanggal_selesai'];
+            $report->status = 'Menunggu konfirmasi';
+        }
+
+        if (!empty($validated['tanggal_tunda'])) {
+            $report->postponed_date = $validated['tanggal_tunda'];
+        }
+
+        if (!empty($validated['keterangan_tunda'])) {
+            $report->postponed_reason = $validated['keterangan_tunda'];
+        }
+
         $report->save();
 
-        // Hapus dokumen jika ada yang dipilih
+        // Update tanggal tunda & keterangan tunda
+        $report->postponed_date = $validated['tanggal_tunda'] ?? null;
+        $report->postponed_reason = $validated['keterangan_tunda'] ?? null;
+
+        $report->save();
+
+        // Hapus dokumen lama
         if (!empty($validated['hapus_dokumen'])) {
-            foreach ($validated['hapus_dokumen'] as $docId) {
-                $document = Document::find($docId);
-                if ($document && $document->report_id === $report->report_id) {
-                    if (Storage::exists($document->file_path)) {
-                        Storage::delete($document->file_path);
-                    }
-                    $document->delete();
-                }
-            }
+            $deletedIds = $validated['hapus_dokumen'];
+            Document::whereIn('doc_id', $deletedIds)
+                ->where('report_id', $report->report_id)
+                ->get()
+                ->each(function ($doc) {
+                    Storage::delete($doc->file_path);
+                    $doc->delete();
+                });
         }
 
-        // REFRESH relasi dokumen setelah penghapusan
-        $report->load('documents');
-
-        // Hitung total dokumen setelah penghapusan
-        $currentDocumentCount = $report->documents->count();
-
-        // Upload dokumen baru (maks total 3)
+        // Upload dokumen baru
         if ($request->hasFile('dokumen')) {
-            $newFiles = $request->file('dokumen');
+            $currentCount = $report->documents()->count();
+            $newFiles = $request->file('dokumen', []);
 
-            if (($currentDocumentCount + count($newFiles)) > 3) {
-                return redirect()->back()->withErrors(['dokumen' => 'Maksimal 3 dokumen diperbolehkan per laporan.']);
+            if (($currentCount + count($newFiles)) > 3) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Maksimal 3 dokumen per laporan.'
+                ], 422);
             }
 
             foreach ($newFiles as $file) {
@@ -241,6 +258,9 @@ class ScheduleController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Laporan berhasil diperbarui.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Laporan berhasil diperbarui.'
+        ]);
     }
 }

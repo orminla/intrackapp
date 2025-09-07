@@ -19,7 +19,7 @@ use App\Models\Department;
 use App\Models\Portfolio;
 use App\Models\User;
 use App\Models\PendingUser;
-
+use App\Models\Certification;
 
 class InspectorController extends Controller
 {
@@ -107,6 +107,7 @@ class InspectorController extends Controller
                 'beban_kerja'       => $bebanKerja,
                 'pekerjaan_selesai' => $pekerjaanSelesai,
                 'kinerja'           => $kinerja,
+                'sertifikasi'       => $inspector->certifications,
             ];
         });
 
@@ -276,10 +277,12 @@ class InspectorController extends Controller
                 }
             ],
             'portfolio_id' => 'required|exists:portfolios,portfolio_id',
+            'deleted_certifications' => 'nullable|array',
+            'deleted_certifications.*' => 'integer|exists:certifications,certification_id',
         ]);
 
+        // Update inspector
         $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
-
         $inspector->update([
             'nip' => $validated['nip'],
             'name' => $validated['name'],
@@ -287,6 +290,7 @@ class InspectorController extends Controller
             'portfolio_id' => $validated['portfolio_id'],
         ]);
 
+        // Update user email
         if ($user) {
             $user->email = $validated['email'];
             if (isset($user->nip)) {
@@ -295,11 +299,17 @@ class InspectorController extends Controller
             $user->save();
         }
 
+        // Hapus sertifikasi yang ditandai
+        if (!empty($validated['deleted_certifications'])) {
+            Certification::whereIn('certification_id', $validated['deleted_certifications'])->delete();
+        }
+
         $message = 'Data petugas berhasil diperbarui.';
         return $request->expectsJson()
             ? response()->json(['success' => true, 'message' => $message])
             : redirect()->back()->with('success', $message);
     }
+
 
     public function destroy($nip)
     {

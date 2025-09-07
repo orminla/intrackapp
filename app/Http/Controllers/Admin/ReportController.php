@@ -83,6 +83,8 @@ class ReportController extends Controller
                     'lokasi'          => $alamat,
                     'tanggal'         => optional($report->schedule->started_date)->format('Y-m-d'),
                     'tanggal_selesai' => optional($report->finished_date)->format('Y-m-d'),
+                    'tanggal_tunda'   => optional($report->postponed_date)->format('Y-m-d'),
+                    'keterangan_tunda' => $report->postponed_reason ?? null,
                     'produk'          => optional($report->schedule->product)->name ?? '-',
                     'detail_produk'   => $report->schedule->selectedDetails->pluck('name')->toArray(),
                     'petugas'         => optional($report->schedule->inspector)->name ?? '-',
@@ -94,7 +96,7 @@ class ReportController extends Controller
                             'path' => $doc->file_path,
                         ];
                     }) ?? [],
-                    "alasan_penolakan" => $report->rejection_reason ?? null,
+                    'alasan_penolakan' => $report->rejection_reason ?? null,
                 ],
             ];
         });
@@ -224,7 +226,6 @@ class ReportController extends Controller
                     'path' => asset('storage/' . $doc->file_path),
                 ];
             }) ?? [],
-            'alasan_penolakan' => $schedule->report->rejection_reason ?? null,  // <== tambahan ini
         ];
 
         return view('admin.detail_report.show', compact('detail'));

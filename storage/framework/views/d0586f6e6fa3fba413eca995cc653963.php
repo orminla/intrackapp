@@ -1,13 +1,8 @@
 <?php $__env->startPush("styles"); ?>
     <style>
-        .modal-lg-scrollable {
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        /* Hanya beri margin bawah biar ada jarak ke data berikutnya */
         .rejection-reason {
             padding-top: 15px;
-            margin-top: 0; /* tanpa margin atas */
+            margin-top: 0;
             margin-bottom: 15px;
         }
     </style>
@@ -21,7 +16,7 @@
     aria-hidden="true"
 >
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content rounded-4 p-3 modal-lg-scrollable">
+        <div class="modal-content rounded-4 p-3">
             <div
                 class="modal-header border-0 pb-0 d-flex justify-content-between align-items-center"
             >
@@ -78,7 +73,7 @@
                         />
                     </div>
 
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">Tanggal Mulai</label>
                         <input
                             type="date"
@@ -88,17 +83,37 @@
                         />
                     </div>
 
-                    <?php if(! empty($schedule["tanggal_selesai"])): ?>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Tanggal Selesai</label>
-                            <input
-                                type="date"
-                                class="form-control"
-                                value="<?php echo e($schedule["tanggal_selesai"]); ?>"
-                                readonly
-                            />
-                        </div>
-                    <?php endif; ?>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tanggal Tunda</label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            value="<?php echo e($schedule["tanggal_tunda"]); ?>"
+                            readonly
+                        />
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tanggal Selesai</label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            value="<?php echo e($schedule["tanggal_selesai"]); ?>"
+                            readonly
+                        />
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Keterangan Tunda</label>
+                        <textarea
+                            class="form-control"
+                            rows="3"
+                            readonly
+                            style="resize: none"
+                        >
+<?php echo e($schedule["keterangan_tunda"] ?? "-"); ?></textarea
+                        >
+                    </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Petugas</label>

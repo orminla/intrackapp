@@ -7,7 +7,7 @@
 
     @media (min-width: 768px) {
         .custom-modal-width {
-            max-width: 520px;
+            max-width: 720px;
         }
     }
 
@@ -79,14 +79,7 @@
     }
 </style>
 
-@include(
-    "add_certification_modal",
-    [
-        "allPortfolios" => $allPortfolios ?? collect([]),
-        "profile" => $profile ?? [],
-    ]
-)
-@include("edit_certification_modal")
+@include("edit_profile_modal", ["profile" => $profile])
 
 <!-- Modal Profil -->
 <div
@@ -152,24 +145,11 @@
 
                 <hr />
 
-                <!-- Sertifikasi -->
                 <div class="field-row certification-section">
-                    <div
-                        class="d-flex justify-content-between align-items-center mb-3"
-                    >
+                    <div class="mb-3">
                         <strong>Sertifikasi</strong>
-                        <button
-                            type="button"
-                            class="btn btn-outline-primary btn-sm mb-0"
-                            data-bs-toggle="modal"
-                            data-bs-target="#tambahCertifModal"
-                        >
-                            <i class="ti ti-plus me-1"></i>
-                            Tambah
-                        </button>
                     </div>
 
-                    <!-- Daftar file sertifikasi -->
                     <div
                         class="certification-list"
                         style="max-height: 200px; overflow-y: auto"
@@ -178,17 +158,24 @@
                             @foreach ($profile["certifications"] as $cert)
                                 @php
                                     $certUrl = $cert->file_path ? asset("storage/" . $cert->file_path) : null;
+                                    $fullPortfolioName = $cert->portfolio->name ?? "-";
+                                    $portfolioParts = explode("-", $fullPortfolioName, 2);
+                                    $portfolioName = $portfolioParts[1] ?? $fullPortfolioName;
                                 @endphp
 
                                 <div
-                                    class="certification-card mb-2 p-2 border rounded bg-light"
-                                    @if ($certUrl)
-                                        onclick="window.open('{{ $certUrl }}', '_blank')"
-                                        style="cursor: pointer;"
-                                    @endif
+                                    class="certification-card"
+                                    @if($certUrl) onclick="window.open('{{ $certUrl }}', '_blank')" style="cursor:pointer;" @endif
                                 >
-                                    <div class="fw-bold mb-1">
-                                        {{ $cert->name }}
+                                    <div
+                                        class="d-flex align-items-center fw-bold"
+                                    >
+                                        <span>{{ $cert->name }}</span>
+                                        @if (! empty($portfolioName) && $portfolioName !== "-")
+                                            <span class="text-muted ms-2">
+                                                &ndash; {{ $portfolioName }}
+                                            </span>
+                                        @endif
                                     </div>
 
                                     <div class="small text-muted">
@@ -231,137 +218,6 @@
                     Ganti Password
                 </button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Edit Profil -->
-<div
-    class="modal fade"
-    id="editProfileModal"
-    tabindex="-1"
-    aria-labelledby="editProfileModalLabel"
-    aria-hidden="true"
->
-    <div class="modal-dialog modal-dialog-centered custom-modal-width">
-        <div class="modal-content rounded-4 p-3">
-            <form id="formEditProfile" enctype="multipart/form-data">
-                @csrf
-                @method("PUT")
-
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="editProfileModalLabel">
-                        Edit Profil
-                    </h5>
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Tutup"
-                    ></button>
-                </div>
-
-                <div class="modal-body pt-2 mt-2">
-                    <div class="mb-3 text-center">
-                        <img
-                            id="photoPreview"
-                            src="{{ $profile["photo_url"] ?? asset("login_assets/images/profile/user-7.jpg") }}"
-                            class="rounded-circle mb-2 object-fit-cover"
-                            width="80"
-                            height="80"
-                            alt="Preview Foto"
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Nama</label>
-                        <input
-                            type="text"
-                            name="name"
-                            id="name"
-                            class="form-control"
-                            value="{{ old("name", $profile["name"] ?? "") }}"
-                        />
-                        <div class="invalid-feedback" id="error-name"></div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="gender" class="form-label">
-                            Jenis Kelamin
-                        </label>
-                        <select name="gender" id="gender" class="form-select">
-                            <option value="">Pilih</option>
-                            <option
-                                value="Laki-laki"
-                                {{ old("gender", $profile["gender"]) == "Laki-laki" ? "selected" : "" }}
-                            >
-                                Laki-laki
-                            </option>
-                            <option
-                                value="Perempuan"
-                                {{ old("gender", $profile["gender"]) == "Perempuan" ? "selected" : "" }}
-                            >
-                                Perempuan
-                            </option>
-                        </select>
-                        <div class="invalid-feedback" id="error-gender"></div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            id="email"
-                            class="form-control"
-                            value="{{ old("email", $profile["email"] ?? "") }}"
-                        />
-                        <div class="invalid-feedback" id="error-email"></div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="phone_num" class="form-label">
-                            No. Telepon
-                        </label>
-                        <input
-                            type="text"
-                            name="phone_num"
-                            id="phone_num"
-                            class="form-control"
-                            value="{{ old("phone_num", $profile["phone_num"] ?? "") }}"
-                        />
-                        <div
-                            class="invalid-feedback"
-                            id="error-phone_num"
-                        ></div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="photo_url" class="form-label">
-                            Foto Profil (Upload)
-                        </label>
-                        <input
-                            type="file"
-                            name="photo_url"
-                            id="photo_url"
-                            accept="image/*"
-                            class="form-control"
-                            onchange="previewPhoto(event)"
-                        />
-                        <div
-                            class="invalid-feedback"
-                            id="error-photo_url"
-                        ></div>
-                    </div>
-                </div>
-
-                <div class="modal-footer border-0 pt-0 mt-2">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="ti ti-check me-2"></i>
-                        Simpan Perubahan
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -517,133 +373,11 @@
 <script>
     console.log('Profile Data:', @json($profile));
 
-    // Preview photo upload
-    function previewPhoto(event) {
-        const input = event.target;
-        const preview = document.getElementById('photoPreview');
-
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                preview.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    // Reset validation error UI
-    function resetValidationErrors(formId) {
-        const form = document.getElementById(formId);
-        form.querySelectorAll('.is-invalid').forEach((el) =>
-            el.classList.remove('is-invalid'),
-        );
-        form.querySelectorAll('.invalid-feedback').forEach(
-            (el) => (el.textContent = ''),
-        );
-    }
-
-    // Show validation errors
-    function showValidationErrors(errors, formId) {
-        for (const [key, messages] of Object.entries(errors)) {
-            const input = document.querySelector(`#${formId} [name="${key}"]`);
-            const errorDiv = document.getElementById(`error-${key}`);
-            if (input) {
-                input.classList.add('is-invalid');
-                if (errorDiv) errorDiv.textContent = messages.join(', ');
-            }
-        }
-    }
-
-    // AJAX submit edit profile
-    document
-        .getElementById('formEditProfile')
-        .addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            resetValidationErrors('formEditProfile');
-
-            const formData = new FormData(this);
-
-            fetch('{{ route("profile.update", auth()->id()) }}', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                },
-                body: formData,
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.success) {
-                        // Tutup modal dulu
-                        const modalEl =
-                            document.getElementById('editProfileModal');
-                        const modalInstance =
-                            bootstrap.Modal.getInstance(modalEl);
-                        if (modalInstance) modalInstance.hide();
-
-                        // Tampil popup sukses tanpa tombol konfirmasi, auto close 1.5s
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: data.message,
-                            showConfirmButton: false,
-                            timer: 1500,
-                            timerProgressBar: true,
-                            customClass: {
-                                popup: 'rounded-4',
-                            },
-                        });
-
-                        // Reload halaman setelah 1.5 detik (popup hilang)
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1500);
-                    } else {
-                        if (data.errors) {
-                            showValidationErrors(
-                                data.errors,
-                                'formEditProfile',
-                            );
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal!',
-                                text: data.message || 'Terjadi kesalahan',
-                                confirmButtonText: 'OK',
-                                customClass: {
-                                    popup: 'rounded-4',
-                                    confirmButton:
-                                        'btn btn-primary rounded-2 px-4',
-                                },
-                                buttonsStyling: false,
-                            });
-                        }
-                    }
-                })
-                .catch(() => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal!',
-                        text: 'Terjadi kesalahan saat mengirim data',
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            popup: 'rounded-4',
-                            confirmButton: 'btn btn-primary rounded-2 px-4',
-                        },
-                        buttonsStyling: false,
-                    });
-                });
-        });
-
     // AJAX submit change password
     document
         .getElementById('formChangePassword')
         .addEventListener('submit', function (e) {
             e.preventDefault();
-
-            resetValidationErrors('formChangePassword');
-
             const formData = new FormData(this);
 
             fetch('{{ route("profile.change-password") }}', {
@@ -654,17 +388,13 @@
                 },
                 body: formData,
             })
-                .then((response) => response.json())
+                .then((res) => res.json())
                 .then((data) => {
                     if (data.success) {
-                        // Tutup modal dulu
                         const modalEl =
                             document.getElementById('resetPasswordModal');
-                        const modalInstance =
-                            bootstrap.Modal.getInstance(modalEl);
-                        if (modalInstance) modalInstance.hide();
+                        bootstrap.Modal.getInstance(modalEl)?.hide();
 
-                        // Tampil popup sukses tanpa tombol konfirmasi, auto close 1.5s
                         Swal.fire({
                             icon: 'success',
                             title: 'Berhasil!',
@@ -672,35 +402,24 @@
                             showConfirmButton: false,
                             timer: 1500,
                             timerProgressBar: true,
-                            customClass: {
-                                popup: 'rounded-4',
-                            },
+                            customClass: { popup: 'rounded-4' },
                         });
 
-                        // Redirect ke login setelah 1.5 detik (popup hilang)
                         setTimeout(() => {
                             window.location.href = '{{ route("login") }}';
                         }, 1500);
                     } else {
-                        if (data.errors) {
-                            showValidationErrors(
-                                data.errors,
-                                'formChangePassword',
-                            );
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal!',
-                                text: data.message || 'Terjadi kesalahan',
-                                confirmButtonText: 'OK',
-                                customClass: {
-                                    popup: 'rounded-4',
-                                    confirmButton:
-                                        'btn btn-primary rounded-2 px-4',
-                                },
-                                buttonsStyling: false,
-                            });
-                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal!',
+                            text: data.message || 'Terjadi kesalahan',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'rounded-4',
+                                confirmButton: 'btn btn-primary rounded-2 px-4',
+                            },
+                            buttonsStyling: false,
+                        });
                     }
                 })
                 .catch(() => {
@@ -724,19 +443,16 @@
         const input = document.getElementById(inputId);
         const icon = toggleBtn.querySelector('i');
 
-        toggleBtn.addEventListener('click', function () {
+        toggleBtn.addEventListener('click', () => {
             if (input.type === 'password') {
                 input.type = 'text';
-                icon.classList.remove('ti-eye');
-                icon.classList.add('ti-eye-off');
+                icon.classList.replace('ti-eye', 'ti-eye-off');
             } else {
                 input.type = 'password';
-                icon.classList.remove('ti-eye-off');
-                icon.classList.add('ti-eye');
+                icon.classList.replace('ti-eye-off', 'ti-eye');
             }
         });
     }
-
     togglePassword('toggleCurrentPassword', 'current_password');
     togglePassword('toggleNewPassword', 'new_password');
     togglePassword('toggleConfirmPassword', 'new_password_confirmation');

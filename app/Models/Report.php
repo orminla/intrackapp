@@ -15,11 +15,15 @@ class Report extends Model
     protected $fillable = [
         'schedule_id',
         'finished_date',
+        'postponed_date',
+        'postponed_reason',
+        'rejection_reason',
         'status'
     ];
 
     protected $casts = [
         'finished_date' => 'date',
+        'postponed_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

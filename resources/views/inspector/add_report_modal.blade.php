@@ -4,6 +4,49 @@
             max-width: 680px;
             margin: 1.5rem auto;
         }
+
+        .tambah-laporan-dialog .modal-content {
+            padding: 1rem;
+        }
+
+        .tambah-laporan-dialog .modal-header {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        #fileList li span {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .file-preview {
+            margin-top: 6px;
+            max-height: 200px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 4px;
+            background: #fff;
+        }
+
+        .file-preview img {
+            display: block;
+            max-width: 100%;
+        }
+        .file-preview iframe {
+            width: 100%;
+            height: 200px;
+            border: none;
+        }
+
+        #fileList {
+            margin-top: 0.75rem;
+        }
+
+        #fileList li {
+            margin-bottom: 1rem;
+        }
     </style>
 @endpush
 
@@ -45,28 +88,42 @@
                     />
 
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Mitra</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                value="{{ $jadwalDalamProses["mitra"] }}"
-                                readonly
-                            />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Lokasi</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                value="{{ $jadwalDalamProses["lokasi"] }}"
-                                readonly
-                            />
-                        </div>
-
+                        {{-- Mitra & Lokasi sebaris --}}
                         <div class="row mb-3">
                             <div class="col-md-6">
+                                <label class="form-label">Mitra</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="{{ $jadwalDalamProses["mitra"] }}"
+                                    readonly
+                                />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Lokasi</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="{{ $jadwalDalamProses["lokasi"] }}"
+                                    readonly
+                                />
+                            </div>
+                        </div>
+
+                        {{-- Produk sendiri --}}
+                        <div class="mb-3">
+                            <label class="form-label">Produk</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ $jadwalDalamProses["produk"] }}"
+                                readonly
+                            />
+                        </div>
+
+                        {{-- Tanggal mulai, selesai, tunda sebaris --}}
+                        <div class="row mb-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Tanggal Mulai</label>
                                 <input
                                     type="text"
@@ -75,7 +132,18 @@
                                     readonly
                                 />
                             </div>
-                            <div class="col-md-6">
+
+                            <div class="col-md-4">
+                                <label class="form-label">Tanggal Tunda</label>
+                                <input
+                                    type="date"
+                                    name="tanggal_tunda"
+                                    class="form-control"
+                                    min="{{ $jadwalDalamProses["tanggal"] }}"
+                                />
+                            </div>
+
+                            <div class="col-md-4">
                                 <label class="form-label">
                                     Tanggal Selesai
                                 </label>
@@ -87,18 +155,26 @@
                                     min="{{ $jadwalDalamProses["tanggal"] }}"
                                 />
                             </div>
+
+                            <small class="text-muted mt-2">
+                                Tanggal Tunda bersifat opsional, gunakan jika
+                                jadwal ditunda.
+                            </small>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Produk</label>
-                            <input
-                                type="text"
+                        {{-- Keterangan Tunda (hidden default) --}}
+                        <div class="mb-3 d-none" id="keteranganTundaWrapper">
+                            <label class="form-label">Keterangan Tunda</label>
+                            <textarea
+                                name="keterangan_tunda"
                                 class="form-control"
-                                value="{{ $jadwalDalamProses["produk"] }}"
-                                readonly
-                            />
+                                rows="3"
+                                maxlength="255"
+                                placeholder="Alasan penundaan"
+                            ></textarea>
                         </div>
 
+                        {{-- Dokumentasi --}}
                         <div class="mb-2">
                             <label class="form-label">Unggah Dokumentasi</label>
                             <div class="d-flex gap-2 mb-2">
@@ -175,19 +251,36 @@
                 selectedFiles.forEach((file, index) => {
                     const li = document.createElement('li');
                     li.classList.add(
-                        'd-flex',
-                        'justify-content-between',
-                        'align-items-center',
-                        'mb-1',
+                        'mb-3',
+                        'p-2',
+                        'border',
+                        'rounded',
+                        'bg-light',
                     );
+
+                    // nama file
+                    let fileInfo = `<span>${index + 1}. ${file.name}</span>`;
+
+                    // preview file (image / pdf)
+                    let preview = '';
+                    if (file.type.startsWith('image/')) {
+                        preview = `<div class="file-preview"><img src="${URL.createObjectURL(file)}" class="img-fluid"/></div>`;
+                    } else if (file.type === 'application/pdf') {
+                        preview = `<div class="file-preview"><iframe src="${URL.createObjectURL(file)}"></iframe></div>`;
+                    }
+
                     li.innerHTML = `
-                <span>${index + 1}. ${file.name}</span>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>${fileInfo}</div>
                 <button type="button" class="btn btn-sm btn-outline-danger btn-remove-file" data-index="${index}">
                     <i class="ti ti-x"></i>
                 </button>
-            `;
+            </div>
+            ${preview}
+        `;
                     fileList.appendChild(li);
 
+                    // hidden input agar file terkirim saat submit
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
 
@@ -301,6 +394,29 @@
                         });
                 });
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tanggalTundaInput = document.querySelector(
+                '[name="tanggal_tunda"]',
+            );
+            const keteranganWrapper = document.getElementById(
+                'keteranganTundaWrapper',
+            );
+
+            tanggalTundaInput.addEventListener('input', function () {
+                if (this.value) {
+                    keteranganWrapper.classList.remove('d-none');
+                    keteranganWrapper
+                        .querySelector('textarea')
+                        .setAttribute('required', 'required');
+                } else {
+                    keteranganWrapper.classList.add('d-none');
+                    keteranganWrapper
+                        .querySelector('textarea')
+                        .removeAttribute('required');
+                }
+            });
         });
     </script>
 @endpush

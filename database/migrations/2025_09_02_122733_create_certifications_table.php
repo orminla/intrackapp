@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('certifications', function (Blueprint $table) {
             $table->bigIncrements('certification_id');
             $table->unsignedBigInteger('inspector_id');
-            $table->unsignedBigInteger('portfolio_id')->nullable();
+            $table->unsignedBigInteger('portfolio_id');
 
             $table->string('name');
             $table->string('issuer');
