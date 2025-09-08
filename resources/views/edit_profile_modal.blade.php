@@ -273,10 +273,7 @@
 
             const editProfileModal =
                 document.getElementById('editProfileModal');
-            editProfileModal.addEventListener('hidden.bs.modal', function () {
-                location.reload();
-            });
-
+            
             // Preview foto
             window.previewPhoto = function (event) {
                 const preview = document.getElementById('photoPreview');

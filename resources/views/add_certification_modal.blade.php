@@ -133,7 +133,7 @@
         const form = modal.querySelector('form');
         const submitBtn = form.querySelector('button[type="submit"]');
 
-        let isSubmitted = false; // 🔑 flag
+        let isSubmitted = false;
 
         function checkFormValidity() {
             const requiredElements = form.querySelectorAll(
@@ -159,12 +159,16 @@
 
         submitBtn.disabled = true;
 
-        // Kalau modal tambah sertif ditutup, buka modal edit profil (kecuali habis submit)
+        // Kalau modal tambah sertif ditutup
         modal.addEventListener('hidden.bs.modal', function () {
             if (isSubmitted) {
-                isSubmitted = false; // reset flag
+                isSubmitted = false; // reset flag kalau submit
                 return;
             }
+            form.reset();
+
+            submitBtn.disabled = true;
+
             const editProfileModal =
                 document.getElementById('editProfileModal');
             if (editProfileModal) {
@@ -214,14 +218,14 @@
                         buttonsStyling: false,
                     });
                     if (modalInstance) {
-                        isSubmitted = true; // ✅ tandai kalau submit sukses
+                        isSubmitted = true;
                         modalInstance.hide();
                     }
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
                     if (modalInstance) {
-                        isSubmitted = true; // ✅ tandai juga kalau submit gagal (biar gak auto open edit modal)
+                        isSubmitted = true;
                         modalInstance.hide();
                     }
                     Swal.fire({
