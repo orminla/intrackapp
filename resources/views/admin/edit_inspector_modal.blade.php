@@ -293,7 +293,6 @@
                 let deletedCerts = [];
 
                 // Tombol Edit Profil / Simpan
-                // bagian submit form
                 btn?.addEventListener('click', () => {
                     if (!isEditing) {
                         inputs.forEach((el) => el.removeAttribute('disabled'));
@@ -433,6 +432,7 @@
                     btn.classList.replace('btn-success', 'btn-primary');
                     isEditing = false;
                     deletedCerts = [];
+                    location.reload();
                 });
 
                 // Tombol lihat & hapus sertifikasi
