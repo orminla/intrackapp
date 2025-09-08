@@ -50,14 +50,14 @@
                         <!-- No Surat -->
                         <div class="col-md-6">
                             <label class="form-label">No Surat</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="letterNumberInput"
+                            <select
+                                class="form-select"
+                                id="letterNumberSelect"
                                 name="letter_number"
-                                placeholder="Masukkan Nomor Surat Permintaan Inspeksi"
                                 required
-                            />
+                            >
+                                <option value="">Pilih Nomor Surat</option>
+                            </select>
                             <small
                                 id="letterNumberStatus"
                                 class="d-block mt-1"
@@ -202,126 +202,127 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const portfolioSelect = document.getElementById('portfolioSelect');
+        const letterNumberSelect =
+            document.getElementById('letterNumberSelect');
+        const letterDateInput = document.getElementById('letterDateInput');
+        const partnerInput = document.getElementById('partnerInput');
+        const locationField = document.getElementById('locationField');
         const startedDateInput = document.getElementById('startedDate');
+        const productInput = document.getElementById('productNameInput');
+        const detailWrapper = document.getElementById('productDetailsWrapper');
+        const letterNumberStatus =
+            document.getElementById('letterNumberStatus');
+        const portfolioSelect = document.getElementById('portfolioSelect');
         const inspectorDisplay = document.getElementById('inspectorDisplay');
         const inspectorIdInput = document.getElementById('inspectorId');
         const quotaText = document.getElementById('inspectorQuota');
         const btnReload = document.getElementById('btnReloadPetugas');
-        const partnerInput = document.getElementById('partnerInput');
-        const locationField = document.getElementById('locationField');
         const formTambahJadwal = document.getElementById('formTambahJadwal');
         const modalTambahJadwal = document.getElementById('tambahJadwalModal');
 
         btnReload.disabled = true;
+        let reloadClickCount = 0;
 
-        // 🔹 Batas minimal tanggal inspeksi = hari ini
         const today = new Date().toISOString().split('T')[0];
         startedDateInput.setAttribute('min', today);
 
-        // 🔹 Field nomor surat
-        const letterNumberInput = document.getElementById('letterNumberInput');
-        const letterDateInput = document.getElementById('letterDateInput');
-        const letterNumberStatus =
-            document.getElementById('letterNumberStatus');
-        const detailWrapper = document.getElementById('productDetailsWrapper');
-        const productInput = formTambahJadwal.querySelector(
-            'input[name="product_name"]',
-        );
-
         function resetLetterFields() {
-            letterNumberStatus.textContent = '';
-            letterNumberStatus.className = '';
             letterDateInput.value = '';
             partnerInput.value = '';
             locationField.value = '';
             startedDateInput.value = '';
             productInput.value = '';
             detailWrapper.innerHTML = `<label class="form-label">Detail Produk</label>`;
+            letterNumberStatus.textContent = '';
+            letterNumberStatus.className = '';
         }
 
-        // 🔹 Event fetch otomatis ketika no surat diisi
-        let fetchTimeout;
-        letterNumberInput.addEventListener('input', function () {
-            clearTimeout(fetchTimeout);
-            const noSurat = this.value.trim();
+        // Load nomor surat
+        Promise.all([
+            fetch('https://dummyerp.nirmaladev.my.id/').then((res) =>
+                res.text(),
+            ),
+            fetch('/admin/surat-inspeksi').then((res) => res.json()),
+        ])
+            .then(([html, scheduledLetters]) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const letterCells = doc.querySelectorAll(
+                    'table tbody tr td:nth-child(2)',
+                );
+                const scheduledSet = new Set(scheduledLetters);
+                let availableCount = 0;
 
+                letterCells.forEach((cell) => {
+                    const letterNumber = cell.textContent.trim();
+                    if (!scheduledSet.has(letterNumber)) {
+                        const opt = document.createElement('option');
+                        opt.value = letterNumber;
+                        opt.textContent = letterNumber;
+                        letterNumberSelect.appendChild(opt);
+                        availableCount++;
+                    }
+                });
+
+                letterNumberStatus.textContent = `Total surat tersedia: ${availableCount}`;
+                letterNumberStatus.className = 'text-muted d-block mt-2';
+            })
+            .catch((err) => console.error('Gagal load nomor surat:', err));
+
+        // Saat nomor surat dipilih
+        letterNumberSelect.addEventListener('change', function () {
+            const noSurat = this.value;
             if (!noSurat) {
                 resetLetterFields();
                 return;
             }
 
-            fetchTimeout = setTimeout(() => {
-                fetch(
-                    `https://dummyerp.nirmaladev.my.id/${encodeURIComponent(noSurat)}`,
-                )
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data && data.letter_number) {
-                            //surat ditemukan
-                            letterNumberStatus.textContent =
-                                'Surat permintaan inspeksi tersedia';
-                            letterNumberStatus.className =
-                                'text-success d-block mt-1';
-
-                            letterDateInput.value = data.letter_date || '';
-                            partnerInput.value = data.partner_name || '';
-                            locationField.value = data.partner_address || '';
-                            startedDateInput.value = data.started_date || '';
-                            productInput.value = data.product_name || '';
-
-                            detailWrapper.innerHTML = `<label class="form-label">Detail Produk</label>`;
-                            if (Array.isArray(data.product_details)) {
-                                data.product_details.forEach((detail, idx) => {
-                                    const div = document.createElement('div');
-                                    div.classList.add('mb-2');
-                                    const input =
-                                        document.createElement('input');
-                                    input.type = 'text';
-                                    input.name = 'product_details[]';
-                                    input.classList.add('form-control');
-                                    input.value = detail;
-                                    input.placeholder = `Detail Produk ${idx + 1}`;
-                                    div.appendChild(input);
-                                    detailWrapper.appendChild(div);
-                                });
-                            }
-                        } else {
-                            //surat tidak ditemukan
-                            resetLetterFields();
-                            letterNumberStatus.textContent = `Surat permintaan dengan nomor "${noSurat}" tidak ditemukan`;
-                            letterNumberStatus.className =
-                                'text-danger d-block mt-1';
-                        }
-                    })
-                    .catch((err) => {
-                        console.error('Gagal fetch data API:', err);
-                        resetLetterFields();
-                        letterNumberStatus.textContent =
-                            'Gagal mengambil data dari server';
+            fetch(
+                `https://dummyerp.nirmaladev.my.id/${encodeURIComponent(noSurat)}`,
+            )
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data && data.letter_number) {
+                        letterNumberStatus.textContent = `Jadwal terkait surat "${noSurat}" berhasil dimuat.`;
                         letterNumberStatus.className =
-                            'text-warning d-block mt-1';
-                    });
-            }, 100);
+                            'text-success d-block mt-1';
+
+                        letterDateInput.value = data.letter_date || '';
+                        partnerInput.value = data.partner_name || '';
+                        locationField.value = data.partner_address || '';
+                        startedDateInput.value = data.started_date || '';
+                        productInput.value = data.product_name || '';
+
+                        detailWrapper.innerHTML = `<label class="form-label">Detail Produk</label>`;
+                        if (Array.isArray(data.product_details)) {
+                            data.product_details.forEach((detail, idx) => {
+                                const div = document.createElement('div');
+                                div.classList.add('mb-2');
+                                const input = document.createElement('input');
+                                input.type = 'text';
+                                input.name = 'product_details[]';
+                                input.classList.add('form-control');
+                                input.value = detail;
+                                input.placeholder = `Detail Produk ${idx + 1}`;
+                                div.appendChild(input);
+                                detailWrapper.appendChild(div);
+                            });
+                        }
+                    } else {
+                        resetLetterFields();
+                        letterNumberStatus.textContent = `Jadwal untuk surat "${noSurat}" tidak tersedia.`;
+                        letterNumberStatus.className =
+                            'text-danger d-block mt-1';
+                    }
+                })
+                .catch((err) => {
+                    console.error('Gagal fetch data API:', err);
+                    resetLetterFields();
+                    letterNumberStatus.textContent =
+                        'Gagal mengambil data dari server';
+                    letterNumberStatus.className = 'text-warning d-block mt-1';
+                });
         });
-
-        // 🔹 Update inspector UI
-        function updateInspectorUI(data) {
-            if (data && data.inspector_id) {
-                inspectorDisplay.value = data.name;
-                inspectorIdInput.value = data.inspector_id;
-                quotaText.textContent = `Ketersediaan: ${data.total_available} dari ${data.total_matched}`;
-                btnReload.disabled = false;
-            } else {
-                inspectorDisplay.value = '';
-                inspectorIdInput.value = '';
-                quotaText.textContent = 'Ketersediaan: Tidak ditemukan';
-                btnReload.disabled = true;
-            }
-        }
-
-        portfolioSelect.addEventListener('change', fetchInspector);
-        startedDateInput.addEventListener('change', fetchInspector);
 
         function fetchInspector() {
             const portfolioId = portfolioSelect.value;
@@ -332,6 +333,7 @@
                 inspectorDisplay.value = '';
                 inspectorIdInput.value = '';
                 quotaText.textContent = 'Ketersediaan: -';
+                btnReload.disabled = true;
                 return;
             }
 
@@ -346,7 +348,27 @@
                         throw new Error(
                             data.error || 'Terjadi kesalahan server.',
                         );
-                    updateInspectorUI(data);
+
+                    if (data && data.inspector_id) {
+                        inspectorDisplay.value = data.name;
+                        inspectorIdInput.value = data.inspector_id;
+
+                        const label = data.note.includes('relevan')
+                            ? 'Portofolio Relevan'
+                            : 'Portofolio Utama';
+                        const color =
+                            label === 'Portofolio Relevan'
+                                ? 'text-primary'
+                                : 'text-success';
+
+                        quotaText.innerHTML = `Ketersediaan: ${data.total_available} dari ${data.total_matched} &ndash; <span class="${color}">${label}</span>`;
+                        btnReload.disabled = false;
+                    } else {
+                        inspectorDisplay.value = '';
+                        inspectorIdInput.value = '';
+                        quotaText.textContent = 'Ketersediaan: Tidak ditemukan';
+                        btnReload.disabled = true;
+                    }
                 })
                 .catch((err) => {
                     console.error('Fetch error:', err);
@@ -355,27 +377,39 @@
                 });
         }
 
-        // 🔹 Reload inspector max 2 kali
-        let reloadClickCount = 0;
+        // Reset petugas saat portofolio/tanggal berubah
+        function handlePortfolioOrDateChange() {
+            inspectorIdInput.value = '';
+            inspectorDisplay.value = '';
+            reloadClickCount = 0;
+            fetchInspector();
+        }
+
+        portfolioSelect.addEventListener('change', handlePortfolioOrDateChange);
+        startedDateInput.addEventListener(
+            'change',
+            handlePortfolioOrDateChange,
+        );
+
+        // Reload petugas maksimal 2x
         btnReload.addEventListener('click', function () {
             if (reloadClickCount >= 2) {
                 alert('Petugas hanya bisa diacak maksimal 2 kali.');
                 btnReload.disabled = true;
                 return;
             }
-
             if (!portfolioSelect.value || !startedDateInput.value) {
                 alert(
                     'Silakan pilih portofolio dan tanggal inspeksi terlebih dahulu.',
                 );
                 return;
             }
-
+            inspectorIdInput.value = ''; // reset dulu sebelum reload
             fetchInspector();
             reloadClickCount++;
         });
 
-        // 🔹 Reset modal
+        // Reset modal
         modalTambahJadwal.addEventListener('hidden.bs.modal', function () {
             formTambahJadwal.reset();
             resetLetterFields();
@@ -386,7 +420,7 @@
             reloadClickCount = 0;
         });
 
-        // 🔹 Submit form
+        // Submit form
         formTambahJadwal.addEventListener('submit', function (e) {
             e.preventDefault();
 
@@ -441,7 +475,7 @@
                         bootstrap.Modal.getInstance(modalTambahJadwal);
                     bsModal.hide();
 
-                    this.reset();
+                    formTambahJadwal.reset();
                     resetLetterFields();
                     inspectorDisplay.value = '';
                     inspectorIdInput.value = '';

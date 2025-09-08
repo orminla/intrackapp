@@ -64,6 +64,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/chart/inspection', [AdminDashboardController::class, 'inspectionChart']);
         Route::get('/chart/distribution', [AdminDashboardController::class, 'distributionChart']);
 
+        Route::get('/surat-inspeksi', [ScheduleController::class, 'generateInspectionLetter'])->name('jadwal.surat-inspeksi');
+
+
         Route::get('/get-inspector', [ScheduleController::class, 'getAutoInspector'])->name('get-inspector');
         Route::post('/change-request/update', [ScheduleController::class, 'updateChangeInspector'])->name('change_request.update');
         Route::post('/update-inspector', [ScheduleController::class, 'updateInspector'])->name('updateInspector');

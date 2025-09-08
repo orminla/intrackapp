@@ -196,7 +196,6 @@ class DashboardController extends Controller
                 : back()->withErrors('Anda sudah mencapai batas maksimal 2 kali penggantian petugas bulan ini.');
         }
 
-        // Ambil jadwal inspeksi milik petugas
         $schedule = Schedule::where('schedule_id', $request->schedule_id)
             ->where('inspector_id', $inspector->inspector_id)
             ->where('status', 'Menunggu Konfirmasi')
@@ -211,7 +210,7 @@ class DashboardController extends Controller
                 : back()->withErrors('Data jadwal tidak valid atau sudah dikonfirmasi.');
         }
 
-        // Cek apakah sudah ada request aktif
+        // Cek request aktif
         $existingRequest = InspectorChangeRequest::where('schedule_id', $schedule->schedule_id)
             ->where('status', 'Menunggu Konfirmasi')
             ->first();
@@ -226,56 +225,66 @@ class DashboardController extends Controller
         }
 
         $startedDate = Carbon::parse($schedule->started_date);
-        $twoWeeksAgo = $startedDate->copy()->subDays(14);
-
-        $inspectors = Inspector::where('portfolio_id', $inspector->portfolio_id)
-            ->where('inspector_id', '!=', $inspector->inspector_id)
-            ->get();
-
         $busyInspectorIds = Schedule::whereIn('status', ['Menunggu Konfirmasi', 'Dalam Proses'])
             ->whereBetween('started_date', [now()->subMonth(), now()->addMonth()])
             ->pluck('inspector_id')
             ->toArray();
 
-        $available = $inspectors->filter(function ($insp) use ($busyInspectorIds, $startedDate, $twoWeeksAgo, $schedule) {
-            if (in_array($insp->inspector_id, $busyInspectorIds)) {
-                return false;
+        $filterAvailable = function ($inspectors) use ($busyInspectorIds, $startedDate, $inspector) {
+            $twoWeeksAgo = $startedDate->copy()->subDays(14);
+            return $inspectors->filter(function ($insp) use ($busyInspectorIds, $startedDate, $twoWeeksAgo, $inspector) {
+                if (in_array($insp->inspector_id, $busyInspectorIds)) return false;
+                if ($insp->inspector_id == $inspector->inspector_id) return false;
+                if (Schedule::where('inspector_id', $insp->inspector_id)
+                    ->whereDate('started_date', $startedDate)
+                    ->exists()
+                ) return false;
+
+                $recentInspections = Schedule::where('inspector_id', $insp->inspector_id)
+                    ->whereDate('started_date', '>=', $twoWeeksAgo)
+                    ->whereDate('started_date', '<', $startedDate)
+                    ->whereIn('status', ['Selesai', 'Dalam Proses', 'Menunggu Konfirmasi'])
+                    ->orderBy('started_date', 'desc')
+                    ->get();
+
+                if ($recentInspections->count() >= 4) {
+                    $lastInspectionDate = Carbon::parse($recentInspections->first()->started_date);
+                    return $startedDate->diffInDays($lastInspectionDate) >= 7;
+                }
+
+                return true;
+            });
+        };
+
+        // 1️⃣ Prioritas: inspector dari portofolio asli
+        $originalInspectors = Inspector::where('portfolio_id', $inspector->portfolio_id)
+            ->where('inspector_id', '!=', $inspector->inspector_id)
+            ->get();
+        $availableOriginal = $filterAvailable($originalInspectors);
+
+        if ($availableOriginal->isNotEmpty()) {
+            $newInspector = $availableOriginal->random();
+            $fromOriginalPortfolio = true;
+        } else {
+            // 2️⃣ Fallback: inspector dengan sertifikasi relevan
+            $certifiedInspectors = Inspector::whereHas('certifications', function ($q) use ($inspector) {
+                $q->where('portfolio_id', $inspector->portfolio_id);
+            })->where('inspector_id', '!=', $inspector->inspector_id)->get();
+
+            $availableCertified = $filterAvailable($certifiedInspectors);
+
+            if ($availableCertified->isEmpty()) {
+                return $request->wantsJson()
+                    ? response()->json([
+                        'success' => false,
+                        'message' => 'Tidak ditemukan petugas pengganti yang cocok.',
+                    ], 404)
+                    : back()->withErrors('Tidak ditemukan petugas pengganti yang cocok.');
             }
 
-            $hasSameDate = Schedule::where('inspector_id', $insp->inspector_id)
-                ->whereDate('started_date', $schedule->started_date)
-                ->exists();
-
-            if ($hasSameDate) {
-                return false;
-            }
-
-            $recentInspections = Schedule::where('inspector_id', $insp->inspector_id)
-                ->whereDate('started_date', '>=', $twoWeeksAgo)
-                ->whereDate('started_date', '<', $startedDate)
-                ->whereIn('status', ['Selesai', 'Dalam Proses', 'Menunggu Konfirmasi'])
-                ->orderBy('started_date', 'desc')
-                ->get();
-
-            if ($recentInspections->count() >= 4) {
-                $lastInspectionDate = Carbon::parse($recentInspections->first()->started_date);
-                $daysSinceLast = $startedDate->diffInDays($lastInspectionDate);
-                return $daysSinceLast >= 7;
-            }
-
-            return true;
-        });
-
-        if ($available->isEmpty()) {
-            return $request->wantsJson()
-                ? response()->json([
-                    'success' => false,
-                    'message' => 'Tidak ditemukan petugas pengganti yang cocok.',
-                ], 404)
-                : back()->withErrors('Tidak ditemukan petugas pengganti yang cocok.');
+            $newInspector = $availableCertified->random();
+            $fromOriginalPortfolio = false;
         }
-
-        $newInspector = $available->random();
 
         DB::beginTransaction();
         try {
@@ -302,7 +311,9 @@ class DashboardController extends Controller
             ? response()->json([
                 'success' => true,
                 'message' => 'Permintaan ganti petugas berhasil dikirim.',
-                'data' => $changeRequest,
+                'inspector_id' => $newInspector->inspector_id,
+                'name' => $newInspector->name,
+                'fromOriginalPortfolio' => $fromOriginalPortfolio,
             ])
             : redirect()->back()->with('success', 'Permintaan ganti petugas berhasil dikirim.');
     }

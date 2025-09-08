@@ -33,64 +33,76 @@ class ScheduleController extends Controller
         $startedDate = Carbon::parse($request->input('started_date'));
         $lastInspectorId = $request->input('last_inspector_id');
 
-        // Ambil semua petugas untuk portofolio ini
-        $inspectors = Inspector::where('portfolio_id', $portfolioId)->get();
-
-        if ($inspectors->isEmpty()) {
-            return response()->json([
-                'error' => 'Tidak ada petugas yang cocok dengan portofolio ini.'
-            ], 404);
-        }
-
         // Ambil ID petugas yang sedang memiliki jadwal aktif
         $busyInspectorIds = DB::table('schedules')
             ->whereIn(DB::raw('LOWER(status)'), ['menunggu konfirmasi', 'dalam proses'])
             ->pluck('inspector_id')
             ->toArray();
 
-        // Filter petugas yang tersedia
-        $available = $inspectors->filter(function ($inspector) use ($busyInspectorIds, $startedDate) {
-            if (in_array($inspector->inspector_id, $busyInspectorIds)) {
-                return false;
+        // Fungsi filter inspector
+        $filterAvailable = function ($inspectors) use ($busyInspectorIds, $startedDate, $lastInspectorId) {
+            return $inspectors->filter(function ($inspector) use ($busyInspectorIds, $startedDate) {
+                if (in_array($inspector->inspector_id, $busyInspectorIds)) return false;
+
+                $twoWeeksAgo = $startedDate->copy()->subDays(14);
+
+                $recentInspections = DB::table('schedules')
+                    ->where('inspector_id', $inspector->inspector_id)
+                    ->whereDate('started_date', '>=', $twoWeeksAgo)
+                    ->whereDate('started_date', '<', $startedDate)
+                    ->whereIn(DB::raw('LOWER(status)'), ['selesai', 'dalam proses', 'menunggu konfirmasi'])
+                    ->orderBy('started_date', 'desc')
+                    ->get();
+
+                if ($recentInspections->count() >= 4) {
+                    $lastInspectionDate = Carbon::parse($recentInspections->first()->started_date);
+                    $daysSinceLast = $startedDate->diffInDays($lastInspectionDate);
+                    return $daysSinceLast >= 7;
+                }
+
+                return true;
+            })->filter(function ($inspector) use ($lastInspectorId) {
+                return $inspector->inspector_id != $lastInspectorId;
+            });
+        };
+
+        // Ambil inspector dari portofolio asli
+        $originalInspectors = Inspector::where('portfolio_id', $portfolioId)->get();
+        $availableOriginal = $filterAvailable($originalInspectors);
+
+        if ($availableOriginal->isNotEmpty()) {
+            $selected = $availableOriginal->random();
+            $fromOriginalPortfolio = true;
+        } else {
+            // Jika kosong, ambil dari sertifikasi relevan
+            $certifiedInspectors = Inspector::whereHas('certifications', function ($q) use ($portfolioId) {
+                $q->where('portfolio_id', $portfolioId);
+            })->get();
+
+            $availableCertified = $filterAvailable($certifiedInspectors);
+
+            if ($availableCertified->isEmpty()) {
+                return response()->json([
+                    'error' => 'Semua petugas sedang sibuk atau dalam masa istirahat.'
+                ], 409);
             }
 
-            $twoWeeksAgo = $startedDate->copy()->subDays(14);
-
-            $recentInspections = DB::table('schedules')
-                ->where('inspector_id', $inspector->inspector_id)
-                ->whereDate('started_date', '>=', $twoWeeksAgo)
-                ->whereDate('started_date', '<', $startedDate)
-                ->whereIn(DB::raw('LOWER(status)'), ['selesai', 'dalam proses', 'menunggu konfirmasi'])
-                ->orderBy('started_date', 'desc')
-                ->get();
-
-            if ($recentInspections->count() >= 4) {
-                $lastInspectionDate = Carbon::parse($recentInspections->first()->started_date);
-                $daysSinceLast = $startedDate->diffInDays($lastInspectionDate);
-                return $daysSinceLast >= 7;
-            }
-
-            return true;
-        })->filter(function ($inspector) use ($lastInspectorId) {
-            return $inspector->inspector_id != $lastInspectorId;
-        });
-
-
-        if ($available->isEmpty()) {
-            return response()->json([
-                'error' => 'Semua petugas sedang sibuk atau dalam masa istirahat.'
-            ], 409);
+            $selected = $availableCertified->random();
+            $fromOriginalPortfolio = false;
         }
 
-        // Pilih satu petugas secara acak dari yang tersedia
-        $selected = $available->random();
-
         return response()->json([
-            'inspector_id'     => $selected->inspector_id,
-            'name'             => $selected->name,
-            'total_matched'    => $inspectors->count(),
-            'total_available'  => $available->count(),
-            'note'             => 'Petugas ditemukan dan tidak dalam masa sibuk atau istirahat.',
+            'inspector_id'    => $selected->inspector_id,
+            'name'            => $selected->name,
+            'total_matched'   => $fromOriginalPortfolio
+                ? $originalInspectors->count()
+                : $certifiedInspectors->count(),
+            'total_available' => $fromOriginalPortfolio
+                ? $availableOriginal->count()
+                : $availableCertified->count(),
+            'note'            => $fromOriginalPortfolio
+                ? 'Petugas dari portofolio asli tersedia dan dipilih.'
+                : 'Petugas dari portofolio lain dengan sertifikasi relevan dipilih.',
         ]);
     }
 
@@ -98,25 +110,24 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
-        // Jadwal inspeksi filter, showing, dan search
+        // Filter dan pagination
         $filter = $request->get('filter', 'all');
         $showing = (int) $request->get('showing', 10);
-        $search = $request->get('search', null); // 🔹 tambahan
+        $search = $request->get('search', null);
 
-        // Permintaan ganti petugas filter, showing, dan search (parameter baru)
         $filterChange = $request->get('filter_change', 'all');
         $showingChange = (int) $request->get('showing_change', 10);
-        $searchChange = $request->get('search_change', null); // 🔹 tambahan
+        $searchChange = $request->get('search_change', null);
 
-        // Query jadwal inspeksi
+        // Query jadwal inspeksi dengan eager load relasi penting
         $query = Schedule::with([
             'product:product_id,name',
-            'selectedDetails:detail_id,name',
+            'selectedDetails:detail_id,name,product_id',
             'partner:partner_id,name,address',
-            'inspector' => function ($q) {
-                $q->select('inspector_id', 'name', 'portfolio_id')
-                    ->with('portfolio:portfolio_id,name');
-            }
+            'inspector:inspector_id,name,portfolio_id',
+            'inspector.portfolio:portfolio_id,name',
+            'inspector.certifications:certification_id,inspector_id,portfolio_id',
+            'inspector.certifications.portfolio:portfolio_id,name',
         ]);
 
         // Filter status
@@ -126,19 +137,25 @@ class ScheduleController extends Controller
             $query->whereIn('status', ['Dalam proses', 'Menunggu konfirmasi', 'Dijadwalkan ganti']);
         }
 
-        // 🔹 Filter search jadwal inspeksi
+        // Filter search
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
-                $q->whereHas('partner', function ($partnerQ) use ($search) {
+                $q->whereHas(
+                    'partner',
+                    fn($partnerQ) =>
                     $partnerQ->where('name', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%");
-                })
-                    ->orWhereHas('inspector', function ($inspectorQ) use ($search) {
-                        $inspectorQ->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('product', function ($productQ) use ($search) {
-                        $productQ->where('name', 'like', "%{$search}%");
-                    })
+                        ->orWhere('address', 'like', "%{$search}%")
+                )
+                    ->orWhereHas(
+                        'inspector',
+                        fn($inspectorQ) =>
+                        $inspectorQ->where('name', 'like', "%{$search}%")
+                    )
+                    ->orWhereHas(
+                        'product',
+                        fn($productQ) =>
+                        $productQ->where('name', 'like', "%{$search}%")
+                    )
                     ->orWhere('status', 'like', "%{$search}%");
             });
         }
@@ -155,33 +172,47 @@ class ScheduleController extends Controller
 
         // Transformasi data
         $data = $schedules->getCollection()->transform(function ($schedule) {
+
             $detailProdukList = $schedule->selectedDetails->pluck('name')->toArray();
+
+            $inspectorPortfolio = optional($schedule->inspector?->portfolio)->name;
+
+            // Cek apakah inspector punya sertifikasi yang relevan
+            $relevantPortfolios = collect();
+            foreach ($schedule->inspector->certifications ?? [] as $cert) {
+                if ($cert->portfolio_id) {
+                    $relevantPortfolios->push(optional($cert->portfolio)->name);
+                }
+            }
+
+            // Jika ada sertifikasi relevan → tampilkan dari sertifikasi, jika tidak → portofolio inspector
+            $portfolioName = $relevantPortfolios->filter()->unique()->implode(', ') ?: $inspectorPortfolio ?: '-';
 
             return [
                 'id' => $schedule->schedule_id,
                 'nomor_surat' => $schedule->letter_number,
-                'tanggal_surat' => $schedule->letter_date->format('Y-m-d'),
-                'tanggal_inspeksi' => $schedule->started_date->format('Y-m-d'),
-                'nama_mitra' => $schedule->partner->name ?? '-',
-                'lokasi' => $schedule->partner->address ?? '-',
-                'nama_petugas' => $schedule->inspector->name ?? '-',
-                'portofolio' => $schedule->inspector->portfolio->name ?? '-',
-                'produk' => $schedule->product->name ?? '-',
+                'tanggal_surat' => optional($schedule->letter_date)?->format('Y-m-d') ?? '-',
+                'tanggal_inspeksi' => optional($schedule->started_date)?->format('Y-m-d') ?? '-',
+                'nama_mitra' => optional($schedule->partner)->name ?? '-',
+                'lokasi' => optional($schedule->partner)->address ?? '-',
+                'nama_petugas' => optional($schedule->inspector)->name ?? '-',
+                'portofolio' => $portfolioName,
+                'produk' => optional($schedule->product)->name ?? '-',
                 'detail_produk' => $detailProdukList,
-                'status' => $schedule->status,
+                'status' => $schedule->status ?? '-',
             ];
         });
+
         $schedules->setCollection($data);
 
-        // 🔹 Search juga di permintaan ganti petugas
+        // Permintaan ganti petugas
         $changeRequests = $this->changeReq($request, true, $filterChange, $showingChange, $searchChange);
 
-        // Data pendukung lain
+        // Data pendukung
         $partners = Partner::select('partner_id', 'name', 'address')->get();
         $portfolios = Portfolio::select('portfolio_id', 'name', 'department_id')->get();
         $departments = Department::select('department_id', 'name')->get();
         $produkList = Product::select('name')->distinct()->get();
-
         $allDetailProduk = DetailProduct::select('detail_id', 'name')->get();
 
         if ($request->expectsJson()) {
@@ -204,7 +235,7 @@ class ScheduleController extends Controller
             'portfolios' => $portfolios,
             'departments' => $departments,
             'produkList' => $produkList,
-            'allDetailProduk' => $allDetailProduk, // 🔹 tambahkan ini
+            'allDetailProduk' => $allDetailProduk,
             'showingSelected' => $showing,
             'filterSelected' => $filter,
             'search' => $search,
@@ -213,6 +244,7 @@ class ScheduleController extends Controller
             'searchChange' => $searchChange,
         ]);
     }
+
 
     public function store(Request $request)
     {
@@ -233,10 +265,10 @@ class ScheduleController extends Controller
             'portfolio_id'        => 'required|exists:portfolios,portfolio_id',
             'product_name'        => 'required|string|max:255',
             'product_details_raw' => 'required|string',
+            'inspector_id'        => 'required|exists:inspectors,inspector_id', // pastikan ada
         ]);
 
         $detail_produk = array_filter(array_map('trim', explode(',', $validated['product_details_raw'])));
-
         if (count($detail_produk) < 1) {
             return back()->withErrors(['product_details_raw' => 'Detail produk minimal 1 item.'])->withInput();
         }
@@ -259,29 +291,20 @@ class ScheduleController extends Controller
             ]);
         }
 
-        // Cari petugas dengan kuota paling sedikit
-        $inspector = Inspector::where('portfolio_id', $validated['portfolio_id'])
-            ->withCount(['schedules' => function ($q) {
-                $q->whereDate('started_date', '>=', now());
-            }])
-            ->orderBy('schedules_count', 'asc')
-            ->first();
-
+        // Gunakan inspector_id dari form
+        $inspector = Inspector::find($validated['inspector_id']);
         if (!$inspector) {
-            $message = 'Tidak ada petugas yang tersedia untuk portofolio ini.';
-            return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => $message], 400)
-                : back()->withErrors([$message])->withInput();
+            return back()->withErrors(['inspector_id' => 'Petugas tidak valid atau tidak tersedia.'])->withInput();
         }
 
         $schedule = Schedule::create([
             'letter_number' => $validated['letter_number'],
             'letter_date'   => $validated['letter_date'],
-            'partner_id'   => $partner->partner_id,
-            'inspector_id' => $inspector->inspector_id,
-            'started_date' => $validated['started_date'],
-            'product_id'   => $product->product_id,
-            'status'       => 'Menunggu konfirmasi',
+            'partner_id'    => $partner->partner_id,
+            'inspector_id'  => $inspector->inspector_id,
+            'started_date'  => $validated['started_date'],
+            'product_id'    => $product->product_id,
+            'status'        => 'Menunggu konfirmasi',
         ]);
 
         // Ambil detail_id yang sesuai dengan nama detail dan produk
@@ -664,5 +687,15 @@ class ScheduleController extends Controller
             ]);
             return false;
         }
+    }
+
+    public function generateInspectionLetter()
+    {
+        // Ambil semua nomor surat yang sudah ada di jadwal inspeksi
+        $letters = Schedule::select('letter_number')
+            ->orderBy('letter_number', 'asc')
+            ->pluck('letter_number'); // hasilnya collection
+
+        return response()->json($letters); // dikirim sebagai array JSON
     }
 }

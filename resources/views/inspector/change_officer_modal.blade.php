@@ -1,14 +1,30 @@
 <style>
-    .custom-modal-width {
+    /* ================================
+       Change Inspector Modal Specific
+       ================================ */
+    #changeInspectorModal .custom-modal-width {
         max-width: 85%;
         margin-left: auto;
         margin-right: auto;
     }
 
     @media (min-width: 768px) {
-        .custom-modal-width {
+        #changeInspectorModal .custom-modal-width {
             max-width: 480px;
         }
+    }
+
+    /* Optional: Styling form fields inside changeInspectorModal */
+    #changeInspectorModal .form-group label {
+        font-weight: 600;
+    }
+
+    #changeInspectorModal textarea {
+        resize: none; /* mencegah resize manual */
+    }
+
+    #changeInspectorModal .modal-footer button {
+        min-width: 100px; /* agar tombol tidak terlalu kecil */
     }
 </style>
 
@@ -156,7 +172,6 @@
                                 },
                                 buttonsStyling: false,
                                 preConfirm: () => {
-                                    // Buka modal lagi tanpa menghapus data
                                     const m = new bootstrap.Modal(modalEl);
                                     m.show();
                                 },
