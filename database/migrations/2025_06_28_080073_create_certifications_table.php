@@ -33,7 +33,7 @@ return new class extends Migration
             $table->foreign('portfolio_id')
                 ->references('portfolio_id')
                 ->on('portfolios')
-                ->onDelete('set null');
+                ->onDelete('cascade');
         });
     }
 
