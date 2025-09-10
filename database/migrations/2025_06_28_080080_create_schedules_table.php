@@ -24,7 +24,6 @@ return new class extends Migration
                 'Dalam proses',
                 'Selesai'
             ])->default('Menunggu konfirmasi');
-            // $table->text('rejection_reason')->nullable();
             $table->timestamps();
 
             $table->foreign('inspector_id')
