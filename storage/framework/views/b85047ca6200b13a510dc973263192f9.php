@@ -280,6 +280,13 @@
 
             fetch(
                 `https://dummyerp.nirmaladev.my.id/${encodeURIComponent(noSurat)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                    credentials: 'same-origin',
+                },
             )
                 .then((res) => res.json())
                 .then((data) => {
