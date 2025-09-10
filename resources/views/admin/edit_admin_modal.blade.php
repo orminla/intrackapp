@@ -25,19 +25,17 @@
                         >
                             Edit Data Admin
                         </h4>
-                        <div class="d-flex gap-2 align-items-center">
-                            <button
-                                type="button"
-                                class="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Tutup"
-                            ></button>
-                        </div>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Tutup"
+                        ></button>
                     </div>
 
                     <div class="modal-body pt-2 mt-2 text-start">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
                                 <label class="form-label">Nama Lengkap</label>
                                 <input
                                     type="text"
@@ -49,7 +47,7 @@
                                 />
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label">NIP</label>
                                 <input
                                     type="text"
@@ -61,7 +59,7 @@
                                 />
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 <input
                                     type="email"
@@ -73,7 +71,7 @@
                                 />
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label">No. Telepon</label>
                                 <input
                                     type="text"
@@ -84,7 +82,8 @@
                                     disabled
                                 />
                             </div>
-                            <div class="col-md-6 mb-3">
+
+                            <div class="col-md-6">
                                 <label class="form-label">Jenis Kelamin</label>
                                 <select
                                     name="gender"
@@ -108,47 +107,21 @@
                                 </select>
                             </div>
 
-                            {{-- Dropdown Departemen --}}
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Bidang</label>
-                                <select
-                                    name="department_id"
-                                    class="form-select department-select"
-                                    data-target="portfolio-select-{{ $admin["nip"] }}"
-                                    required
-                                    disabled
-                                >
-                                    @foreach ($departments as $dept)
-                                        <option
-                                            value="{{ $dept->department_id }}"
-                                            {{ $dept->name == $admin["department"] ? "selected" : "" }}
-                                        >
-                                            {{ $dept->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            {{-- Dropdown Portofolio --}}
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label">Portofolio</label>
                                 <select
                                     name="portfolio_id"
-                                    id="portfolio-select-{{ $admin["nip"] }}"
-                                    class="form-select portfolio-select"
+                                    class="form-select"
                                     required
                                     disabled
                                 >
                                     @foreach ($portfolios as $portfolio)
-                                        @if ($portfolio->department->name == $admin["department"])
-                                            <option
-                                                value="{{ $portfolio->portfolio_id }}"
-                                                {{ $portfolio->portfolio_id == $admin["portfolio_id"] ? "selected" : "" }}
-                                            >
-                                                {{ $portfolio->name }}
-                                                ({{ $portfolio->department->name }})
-                                            </option>
-                                        @endif
+                                        <option
+                                            value="{{ $portfolio->portfolio_id }}"
+                                            {{ $portfolio->portfolio_id == $admin["portfolio_id"] ? "selected" : "" }}
+                                        >
+                                            {{ $portfolio->name }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -156,15 +129,13 @@
                     </div>
 
                     <div class="modal-footer border-0 pt-0 mt-2">
-                        <div class="col-md-12 d-flex justify-content-between">
-                            <button
-                                type="button"
-                                class="btn btn-primary w-100"
-                                id="editSaveBtn-{{ $admin["nip"] }}"
-                            >
-                                Edit Profil
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-primary w-100"
+                            id="editSaveBtn-{{ $admin["nip"] }}"
+                        >
+                            Edit Profil
+                        </button>
                     </div>
                 </form>
             </div>
@@ -174,8 +145,6 @@
 
 @push("scripts")
     <script>
-        const allPortfolios = @json($portfolios);
-
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.modal').forEach((modalEdit) => {
                 if (!modalEdit.id.startsWith('updateModal-')) return;
@@ -188,11 +157,7 @@
 
                 btn?.addEventListener('click', () => {
                     if (!isEditing) {
-                        // Enable all inputs/selects for editing
-                        inputs.forEach((el) => {
-                            el.removeAttribute('disabled');
-                        });
-
+                        inputs.forEach((el) => el.removeAttribute('disabled'));
                         btn.textContent = 'Simpan';
                         btn.classList.replace('btn-primary', 'btn-success');
                         isEditing = true;
@@ -232,20 +197,12 @@
                                         'Data admin berhasil diperbarui.',
                                     timer: 1500,
                                     showConfirmButton: false,
-                                    customClass: {
-                                        popup: 'rounded-4',
-                                        confirmButton:
-                                            'btn btn-primary rounded-2 px-4',
-                                    },
-                                    buttonsStyling: false,
+                                    customClass: { popup: 'rounded-4' },
                                 });
 
-                                // Tutup modal otomatis
                                 const modalInstance =
                                     bootstrap.Modal.getInstance(modalEdit);
                                 if (modalInstance) modalInstance.hide();
-
-                                // Reload halaman setelah modal tertutup
                                 setTimeout(
                                     () => window.location.reload(),
                                     1600,
@@ -259,50 +216,15 @@
                                         error.message ||
                                         'Terjadi kesalahan, silakan coba lagi.',
                                     confirmButtonText: 'OK',
-                                    customClass: {
-                                        popup: 'rounded-4',
-                                        confirmButton:
-                                            'btn btn-primary rounded-2 px-4',
-                                    },
-                                    buttonsStyling: false,
+                                    customClass: { popup: 'rounded-4' },
                                 });
                             });
                     }
                 });
 
-                // Dropdown dinamis Bidang -> Portofolio
-                modalEdit
-                    .querySelectorAll('.department-select')
-                    .forEach((select) => {
-                        select.addEventListener('change', function () {
-                            const deptId = this.value;
-                            const targetId = this.getAttribute('data-target');
-                            const targetSelect =
-                                document.getElementById(targetId);
-
-                            if (targetSelect) {
-                                targetSelect.innerHTML = ''; // Kosongkan dulu
-                                allPortfolios.forEach((portfolio) => {
-                                    if (
-                                        portfolio.department.department_id ==
-                                        deptId
-                                    ) {
-                                        const opt =
-                                            document.createElement('option');
-                                        opt.value = portfolio.portfolio_id;
-                                        opt.textContent = `${portfolio.name} (${portfolio.department.name})`;
-                                        targetSelect.appendChild(opt);
-                                    }
-                                });
-                            }
-                        });
-                    });
-
-                // Reset form & tombol saat modal ditutup
+                // Reset saat modal ditutup
                 modalEdit.addEventListener('hidden.bs.modal', () => {
-                    inputs.forEach((el) => {
-                        el.setAttribute('disabled', true);
-                    });
+                    inputs.forEach((el) => el.setAttribute('disabled', true));
                     btn.textContent = 'Edit Profil';
                     btn.classList.replace('btn-success', 'btn-primary');
                     isEditing = false;

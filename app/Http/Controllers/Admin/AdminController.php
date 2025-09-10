@@ -119,7 +119,6 @@ class AdminController extends Controller
             ],
             'gender' => 'required|in:Laki-laki,Perempuan',
             'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
-            'department_id' => 'required|exists:departments,department_id',
             'email' => 'required|email|unique:users,email|unique:pending_users,email',
         ]);
 

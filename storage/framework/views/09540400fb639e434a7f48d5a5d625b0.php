@@ -45,31 +45,23 @@
                         </div>
                     </div>
 
-                    <div class="row g-3">
-                        <!-- Bidang -->
+                    <!-- Gender & Portofolio -->
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Bidang</label>
+                            <label class="form-label">Jenis Kelamin</label>
                             <select
-                                id="adminDepartmentSelect"
-                                name="department_id"
+                                name="gender"
                                 class="form-select rounded-2 bg-white"
                                 required
                             >
-                                <option value="">Pilih Bidang</option>
-                                <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option value="<?php echo e($dept->department_id); ?>">
-                                        <?php echo e($dept->name); ?>
-
-                                    </option>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
                             </select>
                         </div>
-
-                        <!-- Portofolio -->
                         <div class="col-md-6">
                             <label class="form-label">Portofolio</label>
                             <select
-                                id="adminPortfolioSelect"
                                 name="portfolio_id"
                                 class="form-select rounded-2 bg-white"
                                 required
@@ -78,7 +70,6 @@
                                 <?php $__currentLoopData = $portfolios; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $portfolio): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option
                                         value="<?php echo e($portfolio->portfolio_id); ?>"
-                                        data-dept="<?php echo e($portfolio->department_id); ?>"
                                     >
                                         <?php echo e($portfolio->name); ?>
 
@@ -86,8 +77,10 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
+                    </div>
 
-                        <!-- Telepon -->
+                    <!-- Telepon & Email -->
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Telepon</label>
                             <input
@@ -97,8 +90,6 @@
                                 required
                             />
                         </div>
-
-                        <!-- Email -->
                         <div class="col-md-6">
                             <label class="form-label">Email</label>
                             <input
@@ -131,12 +122,7 @@
 
         const form = modal.querySelector('form');
         const submitBtn = form.querySelector('button[type="submit"]');
-        const deptSelect = document.getElementById('adminDepartmentSelect');
         const portfolioSelect = document.getElementById('adminPortfolioSelect');
-
-        const allOptions = Array.from(portfolioSelect.options).filter(
-            (o) => o.value !== '',
-        );
 
         function checkFormValidity() {
             const requiredElements = form.querySelectorAll(
@@ -151,24 +137,6 @@
         function updateSubmitBtn() {
             submitBtn.disabled = !checkFormValidity();
         }
-
-        // Filter portofolio berdasarkan bidang
-        deptSelect.addEventListener('change', function () {
-            const selectedDept = this.value;
-            portfolioSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = 'Pilih Portofolio';
-            portfolioSelect.appendChild(placeholder);
-
-            allOptions.forEach((opt) => {
-                if (opt.dataset.dept === selectedDept) {
-                    portfolioSelect.appendChild(opt);
-                }
-            });
-
-            updateSubmitBtn();
-        });
 
         // Update tombol submit saat input berubah
         const requiredElements = form.querySelectorAll(
@@ -224,7 +192,6 @@
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
-                    // Tutup modal sementara
                     if (modalInstance) modalInstance.hide();
 
                     Swal.fire({
@@ -240,7 +207,6 @@
                         },
                         buttonsStyling: false,
                         preConfirm: () => {
-                            // Buka modal lagi tanpa menghapus data
                             const m = new bootstrap.Modal(modal);
                             m.show();
                         },

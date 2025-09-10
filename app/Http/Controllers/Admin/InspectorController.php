@@ -273,14 +273,16 @@ class InspectorController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'gender' => 'required|string|in:Laki-laki,Perempuan',
             'nip' => [
                 'required',
                 'string',
                 'size:18',
                 'regex:/^\d{18}$/',
-                'unique:inspectors,nip,' . $inspector->inspector_id . ',inspector_id'
+                'unique:inspectors,nip,' . $inspector->inspector_id . ',inspector_id',
+                'unique:pending_users,nip',
             ],
-            'email' => 'required|email|unique:users,email,' . ($user ? $user->id : 'NULL'),
+            'email' => 'required|email|unique:users,email,' . ($user ? $user->id : 'NULL') . '|unique:pending_users,email',
             'phone_num' => [
                 'required',
                 'string',
@@ -300,20 +302,28 @@ class InspectorController extends Controller
             'deleted_certifications.*' => 'integer|exists:certifications,certification_id',
         ]);
 
+        // Normalisasi nomor HP
+        $phone = strpos($validated['phone_num'], '08') === 0
+            ? '62' . substr($validated['phone_num'], 1)
+            : $validated['phone_num'];
+
         // Update inspector
-        $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
         $inspector->update([
             'nip' => $validated['nip'],
             'name' => $validated['name'],
+            'gender' => $validated['gender'],
             'phone_num' => $phone,
             'portfolio_id' => $validated['portfolio_id'],
         ]);
 
-        // Update user email
+        // Update user email (dan gender kalau ada di tabel users)
         if ($user) {
             $user->email = $validated['email'];
             if (isset($user->nip)) {
                 $user->nip = $validated['nip'];
+            }
+            if (isset($user->gender)) {
+                $user->gender = $validated['gender'];
             }
             $user->save();
         }
@@ -328,7 +338,6 @@ class InspectorController extends Controller
             ? response()->json(['success' => true, 'message' => $message])
             : redirect()->back()->with('success', $message);
     }
-
 
     public function destroy($nip)
     {
