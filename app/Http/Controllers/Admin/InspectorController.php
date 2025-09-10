@@ -32,20 +32,20 @@ class InspectorController extends Controller
 
         $showing = (int) $request->input('showing', 10);
         $filter  = $request->input('filter', 'all');
-        $search  = $request->input('search'); // 🔹 ambil keyword pencarian
+        $search  = $request->input('search'); // ambil keyword pencarian
         $currentPage = (int) $request->query('page', 1);
 
         $query = Inspector::with(['portfolio.department', 'schedules.report'])
             ->orderBy('name');
 
-        // 🔹 filter status jika ada
+        // filter status jika ada
         if ($filter !== 'all') {
             $query->whereHas('schedules', function ($q) use ($filter) {
                 $q->where('status', $filter);
             });
         }
 
-        // 🔹 filter pencarian jika ada
+        // filter pencarian jika ada
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -126,7 +126,7 @@ class InspectorController extends Controller
             'inspectors'  => $inspectorsFormatted,
             'departments' => Department::all(),
             'portfolios'  => Portfolio::with('department')->get(),
-            'search'      => $search, // 🔹 biar bisa ditampilkan di input search di view
+            'search'      => $search, // biar bisa ditampilkan di input search di view
         ]);
     }
 
@@ -140,8 +140,10 @@ class InspectorController extends Controller
                 : abort(403, $message);
         }
 
+        // Validasi input
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'gender' => 'required|string|in:Laki-laki,Perempuan',
             'nip' => [
                 'required',
                 'string',
@@ -164,37 +166,54 @@ class InspectorController extends Controller
                     }
                 }
             ],
-            'portfolio_id'  => 'required|exists:portfolios,portfolio_id',
-            'department_id' => 'required|exists:departments,department_id',
+            'portfolio_id' => 'required|exists:portfolios,portfolio_id',
             'email' => 'required|email|unique:users,email|unique:pending_users,email',
         ]);
 
-        $phone = strpos($validated['phone_num'], '08') === 0 ? '62' . substr($validated['phone_num'], 1) : $validated['phone_num'];
+        // Normalisasi nomor HP
+        $phone = strpos($validated['phone_num'], '08') === 0
+            ? '62' . substr($validated['phone_num'], 1)
+            : $validated['phone_num'];
+
+        // Ambil department_id otomatis dari portfolio
+        $portfolio = \App\Models\Portfolio::findOrFail($validated['portfolio_id']);
+        $departmentId = $portfolio->department_id;
+
+        // Buat default password
         $firstName = strtolower(strtok($validated['name'], ' '));
         $defaultPassword = $firstName . '123';
         $token = Str::random(40);
 
+        // Simpan ke PendingUser
         $pending = PendingUser::create([
             'name' => $validated['name'],
+            'gender' => $validated['gender'],
             'email' => $validated['email'],
             'phone_num' => $phone,
             'role' => 'inspector',
             'nip' => $validated['nip'],
             'portfolio_id' => $validated['portfolio_id'],
+            'department_id' => $departmentId, // auto dari portfolio
             'password_plain' => $defaultPassword,
             'verif_token' => $token,
             'expired_at' => now()->addDays(2),
         ]);
 
+        // Buat link verifikasi
         $verifLink = url('/verify-email/' . $token);
 
+        // Kirim email verifikasi
         $verifController = new EmailVerificationController();
         $verifController->sendVerificationLink($pending);
 
         Mail::to($pending->email)->send(new AccountCreated($pending, $verifLink));
 
         return $request->expectsJson()
-            ? response()->json(['success' => true, 'message' => 'Petugas berhasil ditambahkan. Menunggu verifikasi akun.', 'verifikasi_link' => $verifLink], 201)
+            ? response()->json([
+                'success' => true,
+                'message' => 'Petugas berhasil ditambahkan. Menunggu verifikasi akun.',
+                'verifikasi_link' => $verifLink
+            ], 201)
             : redirect()->back()->with('success', 'Petugas berhasil ditambahkan. Tunggu verifikasi email.');
     }
 

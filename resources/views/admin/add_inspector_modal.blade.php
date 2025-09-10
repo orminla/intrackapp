@@ -45,26 +45,20 @@
                         </div>
                     </div>
 
-                    <div class="row g-3">
-                        <!-- Bidang -->
+                    <!-- Gender & Portofolio -->
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Bidang</label>
+                            <label class="form-label">Jenis Kelamin</label>
                             <select
-                                id="departmentSelect"
+                                name="gender"
                                 class="form-select rounded-2 bg-white"
-                                name="department_id"
                                 required
                             >
-                                <option value="">Pilih Bidang</option>
-                                @foreach ($departments as $dept)
-                                    <option value="{{ $dept->department_id }}">
-                                        {{ $dept->name }}
-                                    </option>
-                                @endforeach
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
                             </select>
                         </div>
-
-                        <!-- Portofolio -->
                         <div class="col-md-6">
                             <label class="form-label">Portofolio</label>
                             <select
@@ -77,15 +71,16 @@
                                 @foreach ($portfolios as $portfolio)
                                     <option
                                         value="{{ $portfolio->portfolio_id }}"
-                                        data-dept="{{ $portfolio->department_id }}"
                                     >
                                         {{ $portfolio->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
+                    </div>
 
-                        <!-- Telepon -->
+                    <!-- Telepon & Email -->
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Telepon</label>
                             <input
@@ -95,8 +90,6 @@
                                 required
                             />
                         </div>
-
-                        <!-- Email -->
                         <div class="col-md-6">
                             <label class="form-label">Email</label>
                             <input
@@ -122,9 +115,8 @@
     </div>
 </div>
 
-<!-- Script Filtering Portofolio, Reset Form & SweetAlert -->
+<!-- Script Reset Form & SweetAlert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const tambahPetugasModal =
@@ -132,25 +124,12 @@
         if (!tambahPetugasModal) return;
 
         const form = tambahPetugasModal.querySelector('form');
-        const deptSelect = document.getElementById('departmentSelect');
         const portfolioSelect = document.getElementById('portfolioSelect');
         const allOptions = Array.from(portfolioSelect.options).filter(
             (o) => o.value !== '',
         );
 
-        // Filter portfolio sesuai bidang
-        deptSelect.addEventListener('change', function () {
-            const selectedDept = this.value;
-            portfolioSelect.innerHTML =
-                '<option value="">Pilih Portofolio</option>';
-            allOptions.forEach((option) => {
-                if (option.dataset.dept === selectedDept) {
-                    portfolioSelect.appendChild(option);
-                }
-            });
-        });
-
-        // Reset form saat modal tambah ditutup
+        // Reset form saat modal ditutup
         tambahPetugasModal.addEventListener('hidden.bs.modal', function () {
             form.reset();
             portfolioSelect.innerHTML =
@@ -162,7 +141,7 @@
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
-                form.reportValidity(); // trigger validasi bawaan browser
+                form.reportValidity();
                 return;
             }
 
@@ -202,9 +181,7 @@
                     setTimeout(() => location.reload(), 1600);
                 })
                 .catch((error) => {
-                    // Tutup modal dulu
                     bootstrap.Modal.getInstance(tambahPetugasModal).hide();
-
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal!',
@@ -218,7 +195,6 @@
                         },
                         buttonsStyling: false,
                         preConfirm: () => {
-                            // Buka modal lagi setelah klik OK
                             const modal = new bootstrap.Modal(
                                 tambahPetugasModal,
                             );
