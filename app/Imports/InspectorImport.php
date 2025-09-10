@@ -24,6 +24,7 @@ class InspectorImport implements ToCollection
         $expectedHeader = [
             'nama lengkap',
             'nip',
+            'jenis kelamin',
             'telepon',
             'department id',
             'portfolio id',
@@ -44,10 +45,11 @@ class InspectorImport implements ToCollection
 
             $name  = trim($row[0]);
             $nip   = trim($row[1]);
-            $phone = trim($row[2]);
-            $departmentId = trim($row[3]);
-            $portfolioId = trim($row[4]);
-            $email = strtolower(trim($row[5]));
+            $gender = strtolower(trim($row[2]));
+            $phone = trim($row[3]);
+            $departmentId = trim($row[4]);
+            $portfolioId = trim($row[5]);
+            $email = strtolower(trim($row[6]));
 
             if (!$name || !$nip || !$phone || !$departmentId || !$portfolioId || !$email) {
                 throw new \Exception("Data tidak lengkap pada baris $rowNumber.");
@@ -86,6 +88,7 @@ class InspectorImport implements ToCollection
 
             $pending = PendingUser::create([
                 'name'           => $name,
+                'gender'         => $gender,
                 'email'          => $email,
                 'phone_num'      => $phone,
                 'role'           => 'inspector',

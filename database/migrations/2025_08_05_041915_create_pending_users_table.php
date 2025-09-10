@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('pending_users', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('name');
+            $table->string('gender');
             $table->string('email')->unique();
             $table->string('phone_num');
             $table->enum('role', ['admin', 'inspector'])->default('inspector');

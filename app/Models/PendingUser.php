@@ -13,6 +13,7 @@ class PendingUser extends Model
 
     protected $fillable = [
         'name',
+        'gender',
         'email',
         'phone_num',
         'role',
